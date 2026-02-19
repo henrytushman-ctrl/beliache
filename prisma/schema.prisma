@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String       @id @default(cuid())
+  name          String?
+  username      String       @unique
+  email         String       @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  bio           String?
+  createdAt     DateTime     @default(now())
+
+  reviews       Review[]
+  rankings      UserRanking[]
+  bathrooms     Bathroom[]   @relation("AddedBy")
+
+  sentRequests     Friendship[] @relation("Requester")
+  receivedRequests Friendship[] @relation("Addressee")
+
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Bathroom {
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  lat         Float?
+  lng         Float?
+  type        String   @default("public")
+  addedById   String
+  createdAt   DateTime @default(now())
+
+  addedBy     User         @relation("AddedBy", fields: [addedById], references: [id])
+  reviews     Review[]
+  rankings    UserRanking[]
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  userId      String
+  bathroomId  String
+  overall     Int
+  cleanliness Int
+  supplies    Int
+  smell       Int
+  privacy     Int
+  notes       String?
+  cost        Int      @default(0)   // 0=Free, 1=$, 2=$$, 3=$$$
+  crowded     Int      @default(3)   // 1=Empty → 5=Packed
+  visitedAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bathroom    Bathroom @relation(fields: [bathroomId], references: [id], onDelete: Cascade)
+}
+
+model UserRanking {
+  id         String   @id @default(cuid())
+  userId     String
+  bathroomId String
+  position   Int
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bathroom   Bathroom @relation(fields: [bathroomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bathroomId])
+  @@unique([userId, position])
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+
+  requester   User     @relation("Requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User     @relation("Addressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+}

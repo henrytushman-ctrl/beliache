@@ -1,0 +1,74 @@
+import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@/auth"
+import { prisma } from "@/lib/prisma"
+
+export async function GET() {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const userId = session.user.id
+
+  const friendships = await prisma.friendship.findMany({
+    where: {
+      OR: [{ requesterId: userId }, { addresseeId: userId }],
+    },
+    include: {
+      requester: { select: { id: true, name: true, username: true, image: true } },
+      addressee: { select: { id: true, name: true, username: true, image: true } },
+    },
+  })
+
+  return NextResponse.json(friendships)
+}
+
+export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { addresseeId } = await req.json()
+  const requesterId = session.user.id
+
+  if (requesterId === addresseeId) {
+    return NextResponse.json({ error: "Cannot friend yourself" }, { status: 400 })
+  }
+
+  const existing = await prisma.friendship.findFirst({
+    where: {
+      OR: [
+        { requesterId, addresseeId },
+        { requesterId: addresseeId, addresseeId: requesterId },
+      ],
+    },
+  })
+
+  if (existing) return NextResponse.json(existing)
+
+  const friendship = await prisma.friendship.create({
+    data: { requesterId, addresseeId, status: "pending" },
+  })
+
+  return NextResponse.json(friendship)
+}
+
+export async function PATCH(req: NextRequest) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { friendshipId, action } = await req.json()
+
+  if (!["accept", "decline"].includes(action)) {
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 })
+  }
+
+  const friendship = await prisma.friendship.findUnique({ where: { id: friendshipId } })
+  if (!friendship || friendship.addresseeId !== session.user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  const updated = await prisma.friendship.update({
+    where: { id: friendshipId },
+    data: { status: action === "accept" ? "accepted" : "declined" },
+  })
+
+  return NextResponse.json(updated)
+}
