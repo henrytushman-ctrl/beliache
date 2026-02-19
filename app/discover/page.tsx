@@ -5,7 +5,8 @@ import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, MapPin, Star } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Search, MapPin, Star, Plus } from "lucide-react"
 
 const COST_LABELS = ["Free", "$", "$$", "$$$"]
 
@@ -59,7 +60,12 @@ export default function DiscoverPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
-      <h1 className="text-2xl font-bold">Discover</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Discover</h1>
+        <Link href="/rate">
+          <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Bathroom</Button>
+        </Link>
+      </div>
 
       {/* Search */}
       <div className="relative">
