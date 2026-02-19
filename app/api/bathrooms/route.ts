@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+
+const DEMO_USER_ID = "demo0000000000000000000000"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -55,9 +56,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { name, address, lat, lng, type } = await req.json()
   if (!name || !address) {
     return NextResponse.json({ error: "Name and address required" }, { status: 400 })
@@ -70,7 +68,7 @@ export async function POST(req: NextRequest) {
       lat: lat ?? null,
       lng: lng ?? null,
       type: type ?? "public",
-      addedById: session.user.id,
+      addedById: DEMO_USER_ID,
     },
   })
 

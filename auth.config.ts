@@ -28,15 +28,8 @@ export const authConfig: NextAuthConfig = {
       }
       return session
     },
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user
-      const publicRoutes = ["/login", "/signup"]
-      const isPublic = publicRoutes.some((r) => nextUrl.pathname.startsWith(r))
-      const isApi = nextUrl.pathname.startsWith("/api")
-
-      if (isApi) return true
-      if (isPublic) return true
-      return isLoggedIn
+    authorized() {
+      return true
     },
   },
   pages: { signIn: "/login" },

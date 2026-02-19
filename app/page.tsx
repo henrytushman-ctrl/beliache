@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
@@ -40,7 +39,6 @@ type Friendship = {
 type SearchUser = { id: string; name: string; username: string; image: string | null }
 
 export default function FeedPage() {
-  const { data: session } = useSession()
   const [feed, setFeed] = useState<FeedItem[]>([])
   const [friendships, setFriendships] = useState<Friendship[]>([])
   const [loading, setLoading] = useState(true)
@@ -58,7 +56,7 @@ export default function FeedPage() {
     setLoading(false)
   }, [])
 
-  useEffect(() => { if (session) fetchData() }, [session, fetchData])
+  useEffect(() => { fetchData() }, [fetchData])
 
   async function searchUsers() {
     if (!searchQ.trim()) return
@@ -88,18 +86,20 @@ export default function FeedPage() {
     fetchData()
   }
 
+  const DEMO_USER_ID = "demo0000000000000000000000"
+
   const pendingRequests = friendships.filter(
-    (f) => f.status === "pending" && f.addresseeId === session?.user.id
+    (f) => f.status === "pending" && f.addresseeId === DEMO_USER_ID
   )
 
   const friendIds = new Set(
     friendships
       .filter((f) => f.status === "accepted")
-      .map((f) => (f.requesterId === session?.user.id ? f.addresseeId : f.requesterId))
+      .map((f) => (f.requesterId === DEMO_USER_ID ? f.addresseeId : f.requesterId))
   )
 
   const pendingIds = new Set(
-    friendships.map((f) => (f.requesterId === session?.user.id ? f.addresseeId : f.requesterId))
+    friendships.map((f) => (f.requesterId === DEMO_USER_ID ? f.addresseeId : f.requesterId))
   )
 
   return (

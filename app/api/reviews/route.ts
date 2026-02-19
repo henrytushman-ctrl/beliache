@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 
-export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+const DEMO_USER_ID = "demo0000000000000000000000"
 
+export async function POST(req: NextRequest) {
   const { bathroomId, overall, cleanliness, supplies, smell, privacy, notes, cost, crowded } = await req.json()
 
   if (!bathroomId || overall == null) {
     return NextResponse.json({ error: "bathroomId and overall required" }, { status: 400 })
   }
 
-  const userId = session.user.id
+  const userId = DEMO_USER_ID
 
   const review = await prisma.review.create({
     data: {

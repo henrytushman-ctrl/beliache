@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+
+const DEMO_USER_ID = "demo0000000000000000000000"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const userId = searchParams.get("userId")
-
-  const session = await auth()
-  const targetId = userId || session?.user.id
-  if (!targetId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const targetId = searchParams.get("userId") || DEMO_USER_ID
 
   const rankings = await prisma.userRanking.findMany({
     where: { userId: targetId },
@@ -29,16 +26,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
   const { order } = await req.json() as { order: string[] }
 
   if (!Array.isArray(order)) {
     return NextResponse.json({ error: "order must be an array of bathroomIds" }, { status: 400 })
   }
 
-  const userId = session.user.id
+  const userId = DEMO_USER_ID
 
   // Update positions in a transaction
   await prisma.$transaction(
