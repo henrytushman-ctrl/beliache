@@ -38,6 +38,7 @@ export default function RatePage() {
 
   // Step 3: notes
   const [notes, setNotes] = useState("")
+  const [directions, setDirections] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
   async function searchBathrooms() {
@@ -66,7 +67,7 @@ export default function RatePage() {
     await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bathroomId, ...ratings, notes }),
+      body: JSON.stringify({ bathroomId, ...ratings, notes, directions }),
     })
 
     setStep("done")
@@ -331,12 +332,25 @@ export default function RatePage() {
             </div>
           </div>
 
-          <Textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="The hand dryer was broken. The stall door didn't lock properly…"
-            rows={4}
-          />
+          <div className="space-y-2">
+            <Label>How to find it 🗺️</Label>
+            <Textarea
+              value={directions}
+              onChange={(e) => setDirections(e.target.value)}
+              placeholder="e.g. Go through the main lobby, past the coffee shop, door on the left…"
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Notes (optional)</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="The hand dryer was broken. The stall door didn't lock properly…"
+              rows={3}
+            />
+          </div>
 
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => setStep("attributes")} className="flex-1">

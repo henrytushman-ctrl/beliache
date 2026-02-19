@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 const DEMO_USER_ID = "demo0000000000000000000000"
 
 export async function POST(req: NextRequest) {
-  const { bathroomId, overall, cleanliness, supplies, smell, privacy, notes, cost, crowded } = await req.json()
+  const { bathroomId, overall, cleanliness, supplies, smell, privacy, notes, directions, cost, crowded } = await req.json()
 
   if (!bathroomId || overall == null) {
     return NextResponse.json({ error: "bathroomId and overall required" }, { status: 400 })
@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       smell: smell ?? 3,
       privacy: privacy ?? 3,
       notes: notes ?? null,
+      directions: directions ?? null,
       cost: cost ?? 0,
       crowded: crowded ?? 3,
     },

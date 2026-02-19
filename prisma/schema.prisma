@@ -90,6 +90,7 @@ model Review {
   smell       Int
   privacy     Int
   notes       String?
+  directions  String?
   cost        Int      @default(0)   // 0=Free, 1=$, 2=$$, 3=$$$
   crowded     Int      @default(3)   // 1=Empty → 5=Packed
   visitedAt   DateTime @default(now())

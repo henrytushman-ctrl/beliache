@@ -19,6 +19,7 @@ type Review = {
   cost: number
   crowded: number
   notes: string | null
+  directions: string | null
   visitedAt: string
   user: { id: string; name: string; username: string; image: string | null }
 }
@@ -236,7 +237,12 @@ export default function BathroomDetailPage() {
                     <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium">{COST_LABELS[r.cost]}</span>
                     <span>👥 {r.crowded}/5</span>
                   </div>
-                  {r.notes && <p className="text-sm text-gray-600 italic">&ldquo;{r.notes}&rdquo;</p>}
+                  {r.directions && (
+                    <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mt-2">
+                      🗺️ <span className="font-medium">Directions:</span> {r.directions}
+                    </p>
+                  )}
+                  {r.notes && <p className="text-sm text-gray-600 italic mt-2">&ldquo;{r.notes}&rdquo;</p>}
                   <p className="text-xs text-gray-400 mt-2">
                     {new Date(r.visitedAt).toLocaleDateString()}
                   </p>
