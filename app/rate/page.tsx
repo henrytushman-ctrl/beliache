@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useMapsLibrary } from "@vis.gl/react-google-maps"
 import { Search, MapPin, ChevronRight, ChevronLeft, CheckCircle } from "lucide-react"
 
 type Bathroom = {
@@ -21,6 +22,35 @@ type Step = "location" | "attributes" | "notes" | "done"
 
 const BATHROOM_TYPES = ["public", "restaurant", "cafe", "hotel", "gym", "office", "other"]
 
+function PlacesAutocomplete({ onSelect }: {
+  onSelect: (place: { name: string; address: string; lat: number | null; lng: number | null }) => void
+}) {
+  const places = useMapsLibrary("places")
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!places || !inputRef.current) return
+    const autocomplete = new places.Autocomplete(inputRef.current, { fields: ["name", "formatted_address", "geometry"] })
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace()
+      onSelect({
+        name: place.name ?? "",
+        address: place.formatted_address ?? "",
+        lat: place.geometry?.location?.lat() ?? null,
+        lng: place.geometry?.location?.lng() ?? null,
+      })
+    })
+  }, [places, onSelect])
+
+  return (
+    <Input
+      ref={inputRef}
+      placeholder="Search for a place…"
+      className="mt-1"
+    />
+  )
+}
+
 export default function RatePage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>("location")
@@ -30,7 +60,7 @@ export default function RatePage() {
   const [results, setResults] = useState<Bathroom[]>([])
   const [selectedBathroom, setSelectedBathroom] = useState<Bathroom | null>(null)
   const [isNew, setIsNew] = useState(false)
-  const [newBathroom, setNewBathroom] = useState({ name: "", address: "", type: "public" })
+  const [newBathroom, setNewBathroom] = useState({ name: "", address: "", type: "public", lat: null as number | null, lng: null as number | null })
   const [searching, setSearching] = useState(false)
 
   // Step 2: attributes
@@ -58,7 +88,7 @@ export default function RatePage() {
       const res = await fetch("/api/bathrooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isNew ? newBathroom : { name: query, address: "Unknown" }),
+        body: JSON.stringify(isNew ? newBathroom : { name: query, address: query }),
       })
       const data = await res.json()
       bathroomId = data.id
@@ -204,22 +234,15 @@ export default function RatePage() {
             <Card>
               <CardContent className="pt-4 space-y-3">
                 <div>
-                  <Label>Name</Label>
-                  <Input
-                    value={newBathroom.name}
-                    onChange={(e) => setNewBathroom((b) => ({ ...b, name: e.target.value }))}
-                    placeholder="e.g. Central Park Bathroom #3"
-                    className="mt-1"
+                  <Label>Search location</Label>
+                  <PlacesAutocomplete
+                    onSelect={(place) => setNewBathroom((b) => ({ ...b, ...place }))}
                   />
-                </div>
-                <div>
-                  <Label>Address</Label>
-                  <Input
-                    value={newBathroom.address}
-                    onChange={(e) => setNewBathroom((b) => ({ ...b, address: e.target.value }))}
-                    placeholder="e.g. 5th Ave & 72nd St, New York"
-                    className="mt-1"
-                  />
+                  {newBathroom.address && (
+                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> {newBathroom.address}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label>Type</Label>
@@ -245,7 +268,7 @@ export default function RatePage() {
 
           <Button
             className="w-full"
-            disabled={!selectedBathroom && (!isNew || !newBathroom.name)}
+            disabled={!selectedBathroom && (!isNew || !newBathroom.address)}
             onClick={() => setStep("attributes")}
           >
             Continue <ChevronRight className="h-4 w-4 ml-1" />
