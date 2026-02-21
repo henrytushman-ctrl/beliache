@@ -72,8 +72,9 @@ model Bathroom {
   lat         Float?
   lng         Float?
   type        String   @default("public")
-  addedById   String
-  createdAt   DateTime @default(now())
+  addedById          String
+  directionsSummary  String?
+  createdAt          DateTime @default(now())
 
   addedBy     User         @relation("AddedBy", fields: [addedById], references: [id])
   reviews     Review[]

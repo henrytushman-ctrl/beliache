@@ -40,6 +40,7 @@ type BathroomDetail = {
   modeCost: number | null
   crowdByPeriod: { night: CrowdPeriod; morning: CrowdPeriod; afternoon: CrowdPeriod; evening: CrowdPeriod }
   crowdThresholdMet: boolean
+  directionsSummary: string | null
   addedBy: { name: string; username: string }
 }
 
@@ -116,6 +117,17 @@ export default function BathroomDetailPage() {
           <Button size="sm" className="shrink-0">Rate</Button>
         </Link>
       </div>
+
+      {/* AI Directions Summary */}
+      {bathroom.directionsSummary && (
+        <Card className="border-emerald-200 bg-emerald-50">
+          <CardContent className="pt-4">
+            <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">🗺️ How to find it</p>
+            <p className="text-sm text-emerald-900">{bathroom.directionsSummary}</p>
+            <p className="text-xs text-emerald-500 mt-2">AI summary from visitor directions</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Aggregate scores */}
       {bathroom.avgOverall !== null && (

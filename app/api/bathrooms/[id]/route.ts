@@ -59,6 +59,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   return NextResponse.json({
     ...bathroom,
+    directionsSummary: bathroom.directionsSummary ?? null,
     avgOverall: avg("overall"),
     avgCleanliness: avg("cleanliness"),
     avgSmell: avg("smell"),
