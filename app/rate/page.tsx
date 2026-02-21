@@ -22,8 +22,10 @@ type Step = "location" | "attributes" | "notes" | "done"
 
 const BATHROOM_TYPES = ["public", "restaurant", "cafe", "hotel", "gym", "office", "other"]
 
-function PlacesAutocomplete({ onSelect }: {
+function PlacesAutocomplete({ onSelect, placeholder, className }: {
   onSelect: (place: { name: string; address: string; lat: number | null; lng: number | null }) => void
+  placeholder?: string
+  className?: string
 }) {
   const places = useMapsLibrary("places")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -47,8 +49,8 @@ function PlacesAutocomplete({ onSelect }: {
   return (
     <Input
       ref={inputRef}
-      placeholder="Search for a place…"
-      className="mt-1"
+      placeholder={placeholder ?? "Search for a place…"}
+      className={className}
     />
   )
 }
@@ -58,12 +60,32 @@ export default function RatePage() {
   const [step, setStep] = useState<Step>("location")
 
   // Step 1: location
-  const [query, setQuery] = useState("")
   const [results, setResults] = useState<Bathroom[]>([])
   const [selectedBathroom, setSelectedBathroom] = useState<Bathroom | null>(null)
   const [isNew, setIsNew] = useState(false)
   const [newBathroom, setNewBathroom] = useState({ name: "", address: "", type: "public", lat: null as number | null, lng: null as number | null })
   const [searching, setSearching] = useState(false)
+
+  async function handlePlaceSelect(place: { name: string; address: string; lat: number | null; lng: number | null }) {
+    setNewBathroom({ name: place.name, address: place.address, type: "public", lat: place.lat, lng: place.lng })
+    setSearching(true)
+    const res = await fetch(`/api/bathrooms?q=${encodeURIComponent(place.name)}`)
+    const data: Bathroom[] = await res.json()
+    setSearching(false)
+    const match = data.find(
+      (b) => b.name.toLowerCase() === place.name.toLowerCase() ||
+             b.address.toLowerCase() === place.address.toLowerCase()
+    )
+    if (match) {
+      setSelectedBathroom(match)
+      setIsNew(false)
+      setResults(data)
+    } else {
+      setSelectedBathroom(null)
+      setIsNew(true)
+      setResults([])
+    }
+  }
 
   // Step 2: attributes
   const [ratings, setRatings] = useState({ overall: 7, cleanliness: 3, supplies: 3, smell: 3, privacy: 3, cost: 0, crowded: 3 })
@@ -73,15 +95,6 @@ export default function RatePage() {
   const [directions, setDirections] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
-  async function searchBathrooms() {
-    if (!query.trim()) return
-    setSearching(true)
-    const res = await fetch(`/api/bathrooms?q=${encodeURIComponent(query)}`)
-    const data = await res.json()
-    setResults(data)
-    setSearching(false)
-  }
-
   async function handleSubmit() {
     setSubmitting(true)
     let bathroomId = selectedBathroom?.id
@@ -90,7 +103,7 @@ export default function RatePage() {
       const res = await fetch("/api/bathrooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isNew ? newBathroom : { name: query, address: query }),
+        body: JSON.stringify(newBathroom),
       })
       const data = await res.json()
       bathroomId = data.id
@@ -177,33 +190,45 @@ export default function RatePage() {
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold mb-1">Which bathroom?</h1>
-            <p className="text-gray-500 text-sm">Search for an existing one or add a new location</p>
+            <p className="text-gray-500 text-sm">Search for the location using Google Maps</p>
           </div>
 
-          <div className="flex gap-2">
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && searchBathrooms()}
-              placeholder="Search by name or address…"
-              className="flex-1"
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
+            <PlacesAutocomplete
+              onSelect={handlePlaceSelect}
+              placeholder="Search for a place…"
+              className="pl-9"
             />
-            <Button onClick={searchBathrooms} disabled={searching} variant="outline" size="icon">
-              <Search className="h-4 w-4" />
-            </Button>
           </div>
 
-          {results.length > 0 && (
+          {searching && (
+            <p className="text-sm text-gray-400 text-center">Checking database…</p>
+          )}
+
+          {/* Existing bathroom found */}
+          {selectedBathroom && (
+            <div className="p-3 rounded-xl border-2 border-emerald-500 bg-emerald-50">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Already in database</span>
+              </div>
+              <div className="font-medium">{selectedBathroom.name}</div>
+              <div className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                <MapPin className="h-3 w-3" /> {selectedBathroom.address}
+              </div>
+              <Badge variant="secondary" className="mt-1 text-xs">{selectedBathroom.type}</Badge>
+            </div>
+          )}
+
+          {/* Other results from DB search (if multiple) */}
+          {results.length > 1 && (
             <div className="space-y-2">
-              {results.map((b) => (
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Other nearby results</p>
+              {results.filter((b) => b.id !== selectedBathroom?.id).map((b) => (
                 <button
                   key={b.id}
                   onClick={() => { setSelectedBathroom(b); setIsNew(false) }}
-                  className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
-                    selectedBathroom?.id === b.id
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-gray-200 hover:border-gray-300 bg-white"
-                  }`}
+                  className="w-full text-left p-3 rounded-xl border-2 border-gray-200 hover:border-gray-300 bg-white transition-all"
                 >
                   <div className="font-medium">{b.name}</div>
                   <div className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
@@ -215,39 +240,21 @@ export default function RatePage() {
             </div>
           )}
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-gray-50 px-2 text-gray-400">or</span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setIsNew(!isNew)}
-            className={`w-full p-3 rounded-xl border-2 text-left transition-all ${
-              isNew ? "border-emerald-500 bg-emerald-50" : "border-dashed border-gray-300 hover:border-gray-400"
-            }`}
-          >
-            <div className="font-medium text-emerald-700">+ Add new bathroom</div>
-            <div className="text-sm text-gray-500">This location isn&apos;t in our database yet</div>
-          </button>
-
-          {isNew && (
-            <Card>
+          {/* New bathroom form */}
+          {isNew && newBathroom.address && (
+            <Card className="border-dashed">
               <CardContent className="pt-4 space-y-3">
-                <div>
-                  <Label>Search location</Label>
-                  <PlacesAutocomplete
-                    onSelect={(place) => setNewBathroom((b) => ({ ...b, ...place }))}
-                  />
-                  {newBathroom.address && (
-                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                      <MapPin className="h-3 w-3" /> {newBathroom.address}
-                    </p>
-                  )}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-amber-600 uppercase tracking-wide">New location — not in database yet</span>
                 </div>
                 <div>
-                  <Label>Type</Label>
+                  <div className="font-medium">{newBathroom.name}</div>
+                  <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                    <MapPin className="h-3 w-3" /> {newBathroom.address}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs">Bathroom type</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {BATHROOM_TYPES.map((t) => (
                       <button
