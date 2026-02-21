@@ -27,20 +27,22 @@ function PlacesAutocomplete({ onSelect }: {
 }) {
   const places = useMapsLibrary("places")
   const inputRef = useRef<HTMLInputElement>(null)
+  const onSelectRef = useRef(onSelect)
+  onSelectRef.current = onSelect
 
   useEffect(() => {
     if (!places || !inputRef.current) return
     const autocomplete = new places.Autocomplete(inputRef.current, { fields: ["name", "formatted_address", "geometry"] })
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace()
-      onSelect({
+      onSelectRef.current({
         name: place.name ?? "",
         address: place.formatted_address ?? "",
         lat: place.geometry?.location?.lat() ?? null,
         lng: place.geometry?.location?.lng() ?? null,
       })
     })
-  }, [places, onSelect])
+  }, [places])
 
   return (
     <Input
