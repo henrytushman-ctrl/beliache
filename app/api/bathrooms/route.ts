@@ -61,20 +61,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name and address required" }, { status: 400 })
   }
 
-  try {
-    const bathroom = await prisma.bathroom.create({
-      data: {
-        name,
-        address,
-        lat: lat ?? null,
-        lng: lng ?? null,
-        type: type ?? "public",
-        addedById: DEMO_USER_ID,
-      },
-    })
-    return NextResponse.json(bathroom)
-  } catch (e) {
-    console.error("POST /api/bathrooms error:", e)
-    return NextResponse.json({ error: String(e) }, { status: 500 })
-  }
+  const bathroom = await prisma.bathroom.create({
+    data: {
+      name,
+      address,
+      lat: lat ?? null,
+      lng: lng ?? null,
+      type: type ?? "public",
+      addedById: DEMO_USER_ID,
+    },
+  })
+
+  return NextResponse.json(bathroom)
 }
