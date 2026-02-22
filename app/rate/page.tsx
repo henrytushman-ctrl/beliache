@@ -37,9 +37,13 @@ function PlacesAutocomplete({ onSelect, placeholder, className }: {
     const autocomplete = new places.Autocomplete(inputRef.current, { fields: ["name", "formatted_address", "geometry"] })
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace()
+      // Fall back to the input's visible text if getPlace() returns incomplete data
+      const inputVal = inputRef.current?.value ?? ""
+      const name = place.name || inputVal
+      const address = place.formatted_address || inputVal
       onSelectRef.current({
-        name: place.name ?? "",
-        address: place.formatted_address ?? "",
+        name,
+        address,
         lat: place.geometry?.location?.lat() ?? null,
         lng: place.geometry?.location?.lng() ?? null,
       })
@@ -47,10 +51,10 @@ function PlacesAutocomplete({ onSelect, placeholder, className }: {
   }, [places])
 
   return (
-    <Input
+    <input
       ref={inputRef}
       placeholder={placeholder ?? "Search for a place…"}
-      className={className}
+      className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${className ?? ""}`}
     />
   )
 }
@@ -241,7 +245,7 @@ export default function RatePage() {
           )}
 
           {/* New bathroom form */}
-          {isNew && newBathroom.address && (
+          {isNew && newBathroom.name && (
             <Card className="border-dashed">
               <CardContent className="pt-4 space-y-3">
                 <div className="flex items-center gap-2">
@@ -277,7 +281,7 @@ export default function RatePage() {
 
           <Button
             className="w-full"
-            disabled={!selectedBathroom && (!isNew || !newBathroom.address)}
+            disabled={!selectedBathroom && (!isNew || !newBathroom.name)}
             onClick={() => setStep("attributes")}
           >
             Continue <ChevronRight className="h-4 w-4 ml-1" />
