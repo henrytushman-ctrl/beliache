@@ -113,7 +113,7 @@ function MapView({ results }: { results: BathroomResult[] }) {
   }, [map, results])
 
   return (
-    <div className="relative rounded-2xl overflow-hidden shadow-warm" style={{ height: "calc(100vh - 220px)", minHeight: 400 }}>
+    <div className="relative rounded-2xl overflow-hidden shadow-warm warm-map" style={{ height: "calc(100vh - 220px)", minHeight: 400 }}>
       <Map
         defaultCenter={{ lat: 40.7128, lng: -74.006 }}
         defaultZoom={13}
@@ -137,23 +137,24 @@ function MapView({ results }: { results: BathroomResult[] }) {
             position={{ lat: selected.lat, lng: selected.lng }}
             onCloseClick={() => setSelected(null)}
           >
-            <div className="p-1 min-w-[160px]">
-              <p className="font-semibold text-sm">{selected.name}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{selected.address}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="secondary" className="text-xs capitalize">{selected.type}</Badge>
+            <div style={{ padding: "4px 2px", minWidth: 160, fontFamily: "inherit" }}>
+              <p style={{ fontWeight: 600, fontSize: 13, color: "#1F1A16", marginBottom: 2 }}>{selected.name}</p>
+              <p style={{ fontSize: 11, color: "#6F6258", marginBottom: 6 }}>{selected.address}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 500, background: "#F5EDE3", color: "#6B4F3A", padding: "2px 7px", borderRadius: 99, textTransform: "capitalize" }}>
+                  {selected.type}
+                </span>
                 {selected.modeCost !== null && (
-                  <span className="text-xs font-semibold" style={{ color: "oklch(0.42 0.072 50)" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#6B4F3A" }}>
                     {COST_LABELS[selected.modeCost]}
                   </span>
                 )}
               </div>
-              <div className="flex items-center justify-between mt-2">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <ScoreDot score={selected.avgOverall} />
                 <button
                   onClick={() => router.push(`/bathroom/${selected.id}`)}
-                  className="text-xs font-semibold hover:underline"
-                  style={{ color: "oklch(0.42 0.072 50)" }}
+                  style={{ fontSize: 11, fontWeight: 700, color: "#6B4F3A", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0 }}
                 >
                   View →
                 </button>

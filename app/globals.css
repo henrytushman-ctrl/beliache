@@ -162,6 +162,21 @@
   }
 }
 
+/* Google Maps warm theme — applied to tiles/UI only, not AdvancedMarker overlays */
+.warm-map .gm-style canvas {
+  filter: sepia(28%) saturate(0.82) brightness(1.03) hue-rotate(-8deg);
+}
+/* Warm the basemap imagery layer too (raster fallback) */
+.warm-map .gm-style img {
+  filter: sepia(22%) saturate(0.85) brightness(1.02);
+}
+/* Warm the Google Maps attribution / UI chrome */
+.warm-map .gm-style .gm-style-cc,
+.warm-map .gm-style-mtc,
+.warm-map .gmnoprint {
+  filter: sepia(15%) saturate(0.9);
+}
+
 @layer utilities {
   /* Warm card shadow with brown tint */
   .shadow-warm {
