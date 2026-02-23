@@ -30,7 +30,7 @@ const TYPES = ["all", "public", "restaurant", "cafe", "hotel", "gym", "office", 
 
 function ScoreDot({ score }: { score: number | null }) {
   if (!score) return <span className="text-gray-400 text-xs">No reviews</span>
-  const color = score >= 8 ? "bg-emerald-500" : score >= 5 ? "bg-yellow-400" : "bg-red-400"
+  const color = score >= 8 ? "bg-green-500" : score >= 5 ? "bg-orange-400" : "bg-red-500"
   return (
     <div className="flex items-center gap-1.5">
       <div className={`h-2 w-2 rounded-full ${color}`} />
@@ -39,11 +39,48 @@ function ScoreDot({ score }: { score: number | null }) {
   )
 }
 
-function pinColor(score: number | null) {
-  if (!score) return "#9ca3af"
-  if (score >= 8) return "#10b981"
-  if (score >= 5) return "#facc15"
-  return "#ef4444"
+function pinConfig(score: number | null) {
+  if (!score) return { bg: "#64748b", glow: "rgba(100,116,139,0.45)" }
+  if (score >= 8) return { bg: "#16a34a", glow: "rgba(22,163,74,0.45)" }
+  if (score >= 5) return { bg: "#ea580c", glow: "rgba(234,88,12,0.45)" }
+  return { bg: "#dc2626", glow: "rgba(220,38,38,0.45)" }
+}
+
+function ScorePin({ score, onClick }: { score: number | null; onClick: () => void }) {
+  const { bg, glow } = pinConfig(score)
+  return (
+    <div
+      onClick={onClick}
+      style={{ cursor: "pointer", filter: `drop-shadow(0 4px 8px ${glow}) drop-shadow(0 1px 3px rgba(0,0,0,0.5))` }}
+    >
+      <div
+        style={{
+          width: 42,
+          height: 42,
+          background: bg,
+          borderRadius: "50% 50% 50% 0",
+          transform: "rotate(-45deg)",
+          border: "3px solid white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span
+          style={{
+            transform: "rotate(45deg)",
+            color: "white",
+            fontWeight: 900,
+            fontSize: 13,
+            lineHeight: 1,
+            letterSpacing: "-0.5px",
+          }}
+        >
+          {score ?? "?"}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 function MapView({ results }: { results: BathroomResult[] }) {
@@ -91,12 +128,7 @@ function MapView({ results }: { results: BathroomResult[] }) {
             position={{ lat: b.lat!, lng: b.lng! }}
             onClick={() => setSelected(b)}
           >
-            <div
-              style={{ background: pinColor(b.avgOverall) }}
-              className="w-8 h-8 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-xs font-bold cursor-pointer"
-            >
-              {b.avgOverall ?? "?"}
-            </div>
+            <ScorePin score={b.avgOverall} onClick={() => setSelected(b)} />
           </AdvancedMarker>
         ))}
 
