@@ -78,7 +78,7 @@ function RankingRow({ item, index }: { item: RankingItem; index: number }) {
         {composite !== null && (
           <div className="flex items-center gap-1">
             <Star className="h-3.5 w-3.5 text-primary fill-primary" />
-            <span className="text-sm font-bold text-primary">{composite.toFixed(1)}/10</span>
+            <span className="text-sm font-bold text-primary">{composite.toFixed(2)}/10</span>
           </div>
         )}
         <Badge variant="secondary" className="text-xs capitalize">{item.bathroom.type}</Badge>
