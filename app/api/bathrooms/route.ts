@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-
-const DEMO_USER_ID = "demo0000000000000000000000"
+import { getOrCreateUser } from "@/lib/auth-user"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -56,6 +55,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const user = await getOrCreateUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
   const { name, address, lat, lng, type } = await req.json()
   if (!name || !address) {
     return NextResponse.json({ error: "Name and address required" }, { status: 400 })
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
       lat: lat ?? null,
       lng: lng ?? null,
       type: type ?? "public",
-      addedById: DEMO_USER_ID,
+      addedById: user.id,
     },
   })
 

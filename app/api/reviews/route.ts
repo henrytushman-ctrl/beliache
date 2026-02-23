@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getOrCreateUser } from "@/lib/auth-user"
 import Anthropic from "@anthropic-ai/sdk"
 
-const DEMO_USER_ID = "demo0000000000000000000000"
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
+  const user = await getOrCreateUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
   const { bathroomId, overall, cleanliness, supplies, smell, privacy, notes, directions, cost, crowded } = await req.json()
 
   if (!bathroomId || overall == null) {
     return NextResponse.json({ error: "bathroomId and overall required" }, { status: 400 })
   }
 
-  const userId = DEMO_USER_ID
+  const userId = user.id
 
   const review = await prisma.review.create({
     data: {
@@ -30,7 +33,7 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Auto-add to user ranking at the bottom (or update position if already exists)
+  // Auto-add to user ranking at the bottom
   const existingRanking = await prisma.userRanking.findUnique({
     where: { userId_bathroomId: { userId, bathroomId } },
   })
@@ -41,13 +44,12 @@ export async function POST(req: NextRequest) {
       orderBy: { position: "desc" },
     })
     const nextPosition = (maxRank?.position ?? 0) + 1
-
     await prisma.userRanking.create({
       data: { userId, bathroomId, position: nextPosition },
     })
   }
 
-  // If this review has directions, regenerate the summary for this bathroom
+  // Regenerate AI directions summary if directions provided
   if (directions?.trim()) {
     const allDirections = await prisma.review.findMany({
       where: { bathroomId, directions: { not: null } },
@@ -68,7 +70,6 @@ export async function POST(req: NextRequest) {
     })
 
     const summary = message.content[0].type === "text" ? message.content[0].text : null
-
     if (summary) {
       await prisma.bathroom.update({
         where: { id: bathroomId },

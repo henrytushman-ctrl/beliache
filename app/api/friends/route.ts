@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-
-const DEMO_USER_ID = "demo0000000000000000000000"
+import { getOrCreateUser } from "@/lib/auth-user"
 
 export async function GET() {
-  const userId = DEMO_USER_ID
+  const user = await getOrCreateUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const userId = user.id
 
   const friendships = await prisma.friendship.findMany({
     where: {
@@ -20,8 +21,10 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const user = await getOrCreateUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { addresseeId } = await req.json()
-  const requesterId = DEMO_USER_ID
+  const requesterId = user.id
 
   if (requesterId === addresseeId) {
     return NextResponse.json({ error: "Cannot friend yourself" }, { status: 400 })
@@ -46,6 +49,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const user = await getOrCreateUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
   const { friendshipId, action } = await req.json()
 
   if (!["accept", "decline"].includes(action)) {
@@ -53,7 +59,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const friendship = await prisma.friendship.findUnique({ where: { id: friendshipId } })
-  if (!friendship || friendship.addresseeId !== DEMO_USER_ID) {
+  if (!friendship || friendship.addresseeId !== user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

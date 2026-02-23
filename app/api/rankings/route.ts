@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-
-const DEMO_USER_ID = "demo0000000000000000000000"
+import { getOrCreateUser } from "@/lib/auth-user"
 
 export async function GET(req: NextRequest) {
+  const user = await getOrCreateUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const { searchParams } = new URL(req.url)
-  const targetId = searchParams.get("userId") || DEMO_USER_ID
+  const targetId = searchParams.get("userId") || user.id
 
   const rankings = await prisma.userRanking.findMany({
     where: { userId: targetId },
@@ -26,13 +27,16 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const user = await getOrCreateUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
   const { order } = await req.json() as { order: string[] }
 
   if (!Array.isArray(order)) {
     return NextResponse.json({ error: "order must be an array of bathroomIds" }, { status: 400 })
   }
 
-  const userId = DEMO_USER_ID
+  const userId = user.id
 
   // Update positions in a transaction
   await prisma.$transaction(

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs"
 import { Search, Star, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -37,6 +38,19 @@ export function Navbar() {
               <span className="hidden sm:block">{label}</span>
             </Link>
           ))}
+
+          <div className="ml-2">
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors">
+                  Sign in
+                </button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton afterSignOutUrl="/discover" />
+            </SignedIn>
+          </div>
         </div>
       </div>
     </nav>

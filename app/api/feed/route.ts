@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-
-const DEMO_USER_ID = "demo0000000000000000000000"
+import { getOrCreateUser } from "@/lib/auth-user"
 
 export async function GET() {
-  const userId = DEMO_USER_ID
+  const user = await getOrCreateUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const userId = user.id
 
   // Get accepted friends
   const friendships = await prisma.friendship.findMany({
