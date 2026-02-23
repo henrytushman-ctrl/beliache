@@ -175,9 +175,30 @@ function MapView({ results }: { results: BathroomResult[] }) {
   )
 }
 
+type SortOption = "score" | "cleanliness" | "price" | "reviews"
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "score",       label: "Best Score" },
+  { value: "cleanliness", label: "Cleanest" },
+  { value: "price",       label: "Cheapest" },
+  { value: "reviews",     label: "Most Reviews" },
+]
+
+function sortResults(results: BathroomResult[], by: SortOption): BathroomResult[] {
+  return [...results].sort((a, b) => {
+    switch (by) {
+      case "score":       return (b.avgOverall ?? -1) - (a.avgOverall ?? -1)
+      case "cleanliness": return (b.avgCleanliness ?? -1) - (a.avgCleanliness ?? -1)
+      case "price":       return (a.modeCost ?? 999) - (b.modeCost ?? 999)
+      case "reviews":     return b.reviewCount - a.reviewCount
+    }
+  })
+}
+
 export default function DiscoverPage() {
   const [query, setQuery] = useState("")
   const [selectedType, setSelectedType] = useState("all")
+  const [sortBy, setSortBy] = useState<SortOption>("score")
   const [results, setResults] = useState<BathroomResult[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<"list" | "map">("list")
@@ -251,6 +272,24 @@ export default function DiscoverPage() {
         ))}
       </div>
 
+      {/* Sort options */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <span className="text-xs text-muted-foreground shrink-0 font-medium">Sort:</span>
+        {SORT_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setSortBy(opt.value)}
+            className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all duration-150 font-medium ${
+              sortBy === opt.value
+                ? "bg-primary/15 text-primary border border-primary/30"
+                : "bg-card text-muted-foreground border border-border hover:border-primary/20 hover:text-foreground"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {/* Results */}
       {loading ? (
         <div className="space-y-3">
@@ -271,7 +310,7 @@ export default function DiscoverPage() {
         <MapView results={results} />
       ) : (
         <div className="space-y-3">
-          {results.map((b) => (
+          {sortResults(results, sortBy).map((b) => (
             <Link key={b.id} href={`/bathroom/${b.id}`}>
               <Card className="hover:shadow-warm-md transition-shadow duration-200 cursor-pointer">
                 <CardContent className="pt-4 pb-4">
