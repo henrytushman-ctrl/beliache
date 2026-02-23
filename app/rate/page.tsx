@@ -70,21 +70,28 @@ export default function RatePage() {
   async function handlePlaceSelect(place: { name: string; address: string; lat: number | null; lng: number | null }) {
     setNewBathroom({ name: place.name, address: place.address, type: "public", lat: place.lat, lng: place.lng })
     setSearching(true)
-    const res = await fetch(`/api/bathrooms?q=${encodeURIComponent(place.name)}`)
-    const data: Bathroom[] = await res.json()
-    setSearching(false)
-    const match = data.find(
-      (b) => b.name.toLowerCase() === place.name.toLowerCase() ||
-             b.address.toLowerCase() === place.address.toLowerCase()
-    )
-    if (match) {
-      setSelectedBathroom(match)
-      setIsNew(false)
-      setResults(data)
-    } else {
+    try {
+      const res = await fetch(`/api/bathrooms?q=${encodeURIComponent(place.name)}`)
+      const data: Bathroom[] = await res.json()
+      const match = data.find(
+        (b) => b.name.toLowerCase() === place.name.toLowerCase() ||
+               b.address.toLowerCase() === place.address.toLowerCase()
+      )
+      if (match) {
+        setSelectedBathroom(match)
+        setIsNew(false)
+        setResults(data)
+      } else {
+        setSelectedBathroom(null)
+        setIsNew(true)
+        setResults([])
+      }
+    } catch {
       setSelectedBathroom(null)
       setIsNew(true)
       setResults([])
+    } finally {
+      setSearching(false)
     }
   }
 
