@@ -118,16 +118,14 @@ export default function RatePage() {
     setTimeout(() => router.push("/rankings"), 2000)
   }
 
-  function RatingInput({ label, field, emoji }: { label: string; field: keyof typeof ratings; emoji: string }) {
+  function RatingInput({ label, field }: { label: string; field: keyof typeof ratings }) {
     const val = ratings[field]
     const max = field === "overall" ? 10 : 5
 
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="flex items-center gap-1.5 text-sm font-medium">
-            <span>{emoji}</span> {label}
-          </Label>
+          <Label className="text-sm font-medium">{label}</Label>
           <span className="text-sm font-bold text-primary">
             {val}/{max}
           </span>
@@ -308,19 +306,17 @@ export default function RatePage() {
 
           <Card>
             <CardContent className="pt-4 space-y-5">
-              <RatingInput label="Overall Score" field="overall" emoji="⭐" />
+              <RatingInput label="Overall Score" field="overall" />
               <div className="border-t border-border pt-4 space-y-5">
-                <RatingInput label="Cleanliness" field="cleanliness" emoji="🧹" />
-                <RatingInput label="Supplies (TP, soap, towels)" field="supplies" emoji="🧴" />
-                <RatingInput label="Smell" field="smell" emoji="🌸" />
-                <RatingInput label="Privacy" field="privacy" emoji="🔒" />
+                <RatingInput label="Cleanliness" field="cleanliness" />
+                <RatingInput label="Supplies (TP, soap, towels)" field="supplies" />
+                <RatingInput label="Smell" field="smell" />
+                <RatingInput label="Privacy" field="privacy" />
               </div>
               <div className="border-t border-border pt-4 space-y-5">
                 {/* Cost */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5 text-sm font-medium">
-                    <span>💵</span> Cost to Access
-                  </Label>
+                  <Label className="text-sm font-medium">Cost to Access</Label>
                   <div className="flex gap-2">
                     {(["Free", "$", "$$", "$$$"] as const).map((label, i) => (
                       <button
@@ -338,7 +334,7 @@ export default function RatePage() {
                   </div>
                 </div>
                 {/* Crowded */}
-                <RatingInput label="How Busy?" field="crowded" emoji="👥" />
+                <RatingInput label="How Busy?" field="crowded" />
               </div>
             </CardContent>
           </Card>
@@ -369,15 +365,15 @@ export default function RatePage() {
               <span className="text-primary shrink-0">{ratings.overall}/10</span>
             </div>
             <div className="flex gap-3 text-xs text-muted-foreground">
-              <span>🧹 {ratings.cleanliness}/5</span>
-              <span>🧴 {ratings.supplies}/5</span>
-              <span>🌸 {ratings.smell}/5</span>
-              <span>🔒 {ratings.privacy}/5</span>
+              <span>Clean {ratings.cleanliness}/5</span>
+              <span>Supplies {ratings.supplies}/5</span>
+              <span>Smell {ratings.smell}/5</span>
+              <span>Privacy {ratings.privacy}/5</span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>How to find it 🗺️</Label>
+            <Label>How to find it</Label>
             <Textarea
               value={directions}
               onChange={(e) => setDirections(e.target.value)}
