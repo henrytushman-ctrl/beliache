@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
@@ -37,7 +36,6 @@ function PlacesAutocomplete({ onSelect, placeholder, className }: {
     const autocomplete = new places.Autocomplete(inputRef.current, { fields: ["name", "formatted_address", "geometry"] })
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace()
-      // Fall back to the input's visible text if getPlace() returns incomplete data
       const inputVal = inputRef.current?.value ?? ""
       const name = place.name || inputVal
       const address = place.formatted_address || inputVal
@@ -54,7 +52,7 @@ function PlacesAutocomplete({ onSelect, placeholder, className }: {
     <input
       ref={inputRef}
       placeholder={placeholder ?? "Search for a place…"}
-      className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${className ?? ""}`}
+      className={`flex h-10 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 transition-shadow ${className ?? ""}`}
     />
   )
 }
@@ -63,7 +61,6 @@ export default function RatePage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>("location")
 
-  // Step 1: location
   const [results, setResults] = useState<Bathroom[]>([])
   const [selectedBathroom, setSelectedBathroom] = useState<Bathroom | null>(null)
   const [isNew, setIsNew] = useState(false)
@@ -91,10 +88,7 @@ export default function RatePage() {
     }
   }
 
-  // Step 2: attributes
   const [ratings, setRatings] = useState({ overall: 7, cleanliness: 3, supplies: 3, smell: 3, privacy: 3, cost: 0, crowded: 3 })
-
-  // Step 3: notes
   const [notes, setNotes] = useState("")
   const [directions, setDirections] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -131,10 +125,10 @@ export default function RatePage() {
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="flex items-center gap-1.5">
+          <Label className="flex items-center gap-1.5 text-sm font-medium">
             <span>{emoji}</span> {label}
           </Label>
-          <span className="text-sm font-semibold text-emerald-600">
+          <span className="text-sm font-bold text-primary">
             {val}/{max}
           </span>
         </div>
@@ -143,10 +137,10 @@ export default function RatePage() {
             <button
               key={n}
               onClick={() => setRatings((r) => ({ ...r, [field]: n }))}
-              className={`flex-1 h-9 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 h-9 rounded-lg text-sm font-semibold transition-all duration-150 ${
                 n <= val
-                  ? "bg-emerald-500 text-white"
-                  : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-secondary text-muted-foreground hover:bg-accent"
               }`}
             >
               {n}
@@ -160,45 +154,60 @@ export default function RatePage() {
   if (step === "done") {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
-        <CheckCircle className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
+        <CheckCircle className="h-16 w-16 text-primary mx-auto mb-4" />
         <h2 className="text-2xl font-bold mb-2">Review Saved!</h2>
-        <p className="text-gray-500">Redirecting to your rankings…</p>
+        <p className="text-muted-foreground">Redirecting to your rankings…</p>
       </div>
     )
   }
 
+  const steps: Step[] = ["location", "attributes", "notes"]
+  const stepLabels = ["Location", "Ratings", "Notes"]
+
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
       {/* Progress */}
-      <div className="flex items-center gap-2 mb-8">
-        {(["location", "attributes", "notes"] as Step[]).map((s, i) => (
-          <div key={s} className="flex items-center gap-2 flex-1">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                step === s
-                  ? "bg-emerald-500 text-white"
-                  : (["attributes", "notes"] as Step[]).indexOf(step as Step) > i || (step as string) === "done"
-                  ? "bg-emerald-100 text-emerald-600"
-                  : "bg-gray-100 text-gray-400"
-              }`}
-            >
-              {i + 1}
+      <div className="flex items-center gap-0 mb-8">
+        {steps.map((s, i) => {
+          const currentIdx = steps.indexOf(step as Step)
+          const isDone = i < currentIdx
+          const isActive = i === currentIdx
+          return (
+            <div key={s} className="flex items-center flex-1">
+              <div className="flex flex-col items-center gap-1 flex-1">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-warm"
+                      : isDone
+                      ? "bg-brand-100 text-primary"
+                      : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  {isDone ? "✓" : i + 1}
+                </div>
+                <span className={`text-xs font-medium ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                  {stepLabels[i]}
+                </span>
+              </div>
+              {i < 2 && (
+                <div className={`h-0.5 flex-1 mx-1 mb-4 rounded-full transition-colors ${isDone ? "bg-primary/30" : "bg-border"}`} />
+              )}
             </div>
-            {i < 2 && <div className="flex-1 h-0.5 bg-gray-200" />}
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Step 1: Location */}
       {step === "location" && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <div>
             <h1 className="text-2xl font-bold mb-1">Which bathroom?</h1>
-            <p className="text-gray-500 text-sm">Search for the location using Google Maps</p>
+            <p className="text-muted-foreground text-sm">Search for the location using Google Maps</p>
           </div>
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
             <PlacesAutocomplete
               onSelect={handlePlaceSelect}
               placeholder="Search for a place…"
@@ -207,67 +216,65 @@ export default function RatePage() {
           </div>
 
           {searching && (
-            <p className="text-sm text-gray-400 text-center">Checking database…</p>
+            <p className="text-sm text-muted-foreground text-center">Checking database…</p>
           )}
 
-          {/* Existing bathroom found */}
+          {/* Existing bathroom */}
           {selectedBathroom && (
-            <div className="p-3 rounded-xl border-2 border-emerald-500 bg-emerald-50">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Already in database</span>
+            <div className="p-4 rounded-2xl border-2 border-primary bg-primary/5">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-xs font-bold text-primary uppercase tracking-wide">Already in database</span>
               </div>
-              <div className="font-medium">{selectedBathroom.name}</div>
-              <div className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+              <div className="font-semibold">{selectedBathroom.name}</div>
+              <div className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
                 <MapPin className="h-3 w-3" /> {selectedBathroom.address}
               </div>
-              <Badge variant="secondary" className="mt-1 text-xs">{selectedBathroom.type}</Badge>
+              <Badge variant="secondary" className="mt-2 text-xs capitalize">{selectedBathroom.type}</Badge>
             </div>
           )}
 
-          {/* Other results from DB search (if multiple) */}
+          {/* Other results */}
           {results.length > 1 && (
             <div className="space-y-2">
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Other nearby results</p>
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Other nearby results</p>
               {results.filter((b) => b.id !== selectedBathroom?.id).map((b) => (
                 <button
                   key={b.id}
                   onClick={() => { setSelectedBathroom(b); setIsNew(false) }}
-                  className="w-full text-left p-3 rounded-xl border-2 border-gray-200 hover:border-gray-300 bg-white transition-all"
+                  className="w-full text-left p-3 rounded-xl border-2 border-border hover:border-primary/30 bg-card transition-all duration-150"
                 >
                   <div className="font-medium">{b.name}</div>
-                  <div className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                  <div className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
                     <MapPin className="h-3 w-3" /> {b.address}
                   </div>
-                  <Badge variant="secondary" className="mt-1 text-xs">{b.type}</Badge>
+                  <Badge variant="secondary" className="mt-1 text-xs capitalize">{b.type}</Badge>
                 </button>
               ))}
             </div>
           )}
 
-          {/* New bathroom form */}
+          {/* New bathroom */}
           {isNew && newBathroom.name && (
-            <Card className="border-dashed">
+            <Card>
               <CardContent className="pt-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-amber-600 uppercase tracking-wide">New location — not in database yet</span>
-                </div>
+                <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">New location — not in database yet</span>
                 <div>
-                  <div className="font-medium">{newBathroom.name}</div>
-                  <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                  <div className="font-semibold">{newBathroom.name}</div>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
                     <MapPin className="h-3 w-3" /> {newBathroom.address}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-xs">Bathroom type</Label>
-                  <div className="flex flex-wrap gap-2 mt-1">
+                  <Label className="text-xs mb-2 block">Bathroom type</Label>
+                  <div className="flex flex-wrap gap-2">
                     {BATHROOM_TYPES.map((t) => (
                       <button
                         key={t}
                         onClick={() => setNewBathroom((b) => ({ ...b, type: t }))}
-                        className={`px-3 py-1 rounded-full text-sm capitalize transition-colors ${
+                        className={`px-3 py-1 rounded-full text-sm capitalize transition-all duration-150 ${
                           newBathroom.type === t
-                            ? "bg-emerald-500 text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-secondary text-muted-foreground hover:bg-accent"
                         }`}
                       >
                         {t}
@@ -291,27 +298,27 @@ export default function RatePage() {
 
       {/* Step 2: Attributes */}
       {step === "attributes" && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <div>
             <h1 className="text-2xl font-bold mb-1">Rate the experience</h1>
-            <p className="text-gray-500 text-sm">
-              Rating: {selectedBathroom?.name || newBathroom.name}
+            <p className="text-muted-foreground text-sm">
+              {selectedBathroom?.name || newBathroom.name}
             </p>
           </div>
 
           <Card>
             <CardContent className="pt-4 space-y-5">
               <RatingInput label="Overall Score" field="overall" emoji="⭐" />
-              <div className="border-t border-gray-100 pt-4 space-y-5">
+              <div className="border-t border-border pt-4 space-y-5">
                 <RatingInput label="Cleanliness" field="cleanliness" emoji="🧹" />
                 <RatingInput label="Supplies (TP, soap, towels)" field="supplies" emoji="🧴" />
                 <RatingInput label="Smell" field="smell" emoji="🌸" />
                 <RatingInput label="Privacy" field="privacy" emoji="🔒" />
               </div>
-              <div className="border-t border-gray-100 pt-4 space-y-5">
+              <div className="border-t border-border pt-4 space-y-5">
                 {/* Cost */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
+                  <Label className="flex items-center gap-1.5 text-sm font-medium">
                     <span>💵</span> Cost to Access
                   </Label>
                   <div className="flex gap-2">
@@ -319,10 +326,10 @@ export default function RatePage() {
                       <button
                         key={label}
                         onClick={() => setRatings((r) => ({ ...r, cost: i }))}
-                        className={`flex-1 h-9 rounded-md text-sm font-medium transition-all ${
+                        className={`flex-1 h-9 rounded-lg text-sm font-semibold transition-all duration-150 ${
                           ratings.cost === i
-                            ? "bg-emerald-500 text-white"
-                            : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-secondary text-muted-foreground hover:bg-accent"
                         }`}
                       >
                         {label}
@@ -349,18 +356,19 @@ export default function RatePage() {
 
       {/* Step 3: Notes */}
       {step === "notes" && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <div>
             <h1 className="text-2xl font-bold mb-1">Any notes?</h1>
-            <p className="text-gray-500 text-sm">Optional — what stood out?</p>
+            <p className="text-muted-foreground text-sm">Optional — what stood out?</p>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
-            <div className="flex justify-between text-sm font-medium text-gray-600">
-              <span>{selectedBathroom?.name || newBathroom.name}</span>
-              <span className="text-emerald-600 font-bold">{ratings.overall}/10</span>
+          {/* Summary card */}
+          <div className="bg-card rounded-2xl border border-border p-4 space-y-2 shadow-warm">
+            <div className="flex justify-between text-sm font-semibold">
+              <span className="text-foreground truncate pr-2">{selectedBathroom?.name || newBathroom.name}</span>
+              <span className="text-primary shrink-0">{ratings.overall}/10</span>
             </div>
-            <div className="flex gap-3 text-xs text-gray-400">
+            <div className="flex gap-3 text-xs text-muted-foreground">
               <span>🧹 {ratings.cleanliness}/5</span>
               <span>🧴 {ratings.supplies}/5</span>
               <span>🌸 {ratings.smell}/5</span>

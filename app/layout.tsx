@@ -16,10 +16,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className={`${geist.variable} font-sans antialiased bg-gray-50 min-h-screen`}>
+        <body className={`${geist.variable} font-sans antialiased bg-background min-h-screen`}>
           <MapsProvider>
             <Navbar />
-            <main className="pt-16">{children}</main>
+            <main className="pt-14">{children}</main>
           </MapsProvider>
         </body>
       </html>

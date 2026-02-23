@@ -16,33 +16,42 @@ export function Navbar() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 h-16">
-      <div className="max-w-2xl mx-auto px-4 h-full flex items-center justify-between">
-        <Link href="/discover" className="font-bold text-xl text-emerald-600 tracking-tight">
-          BeliAche 🚽
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border shadow-warm h-14">
+      <div className="max-w-5xl mx-auto px-4 h-full flex items-center justify-between">
+        {/* Logo */}
+        <Link
+          href="/discover"
+          className="font-bold text-lg tracking-tight text-primary hover:opacity-80 transition-opacity flex items-center gap-1.5"
+        >
+          <span className="text-xl">🚽</span>
+          <span>BeliAche</span>
         </Link>
 
+        {/* Nav + Auth */}
         <div className="flex items-center gap-1">
-          {navItems.map(({ href, icon: Icon, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors",
-                pathname === href || pathname.startsWith(href + "/")
-                  ? "text-emerald-600 bg-emerald-50"
-                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
-              )}
-            >
-              <Icon className="h-5 w-5" />
-              <span className="hidden sm:block">{label}</span>
-            </Link>
-          ))}
+          {navItems.map(({ href, icon: Icon, label }) => {
+            const active = pathname === href || pathname.startsWith(href + "/")
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:block">{label}</span>
+              </Link>
+            )
+          })}
 
-          <div className="ml-2">
+          <div className="ml-2 pl-2 border-l border-border">
             <SignedOut>
               <SignInButton mode="modal">
-                <button className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors">
+                <button className="px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-full hover:bg-primary/90 transition-colors duration-150">
                   Sign in
                 </button>
               </SignInButton>
