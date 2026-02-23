@@ -2,10 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core"
-import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
-import { GripVertical, Star } from "lucide-react"
+import { Star } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
@@ -28,32 +25,11 @@ const medalStyles = [
   "bg-orange-700 text-orange-100", // #3 bronze
 ]
 
-function SortableRow({ item, index }: { item: RankingItem; index: number }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: item.bathroomId,
-  })
-
+function RankingRow({ item, index }: { item: RankingItem; index: number }) {
   const review = item.bathroom.reviews[0]
-  const style = { transform: CSS.Transform.toString(transform), transition }
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center gap-3 bg-card rounded-2xl border p-3.5 transition-all duration-150 ${
-        isDragging
-          ? "shadow-warm-lg border-primary/30 z-50 scale-[1.02]"
-          : "border-border shadow-warm hover:shadow-warm-md"
-      }`}
-    >
-      <button
-        className="text-border hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-5 w-5" />
-      </button>
-
+    <div className="flex items-center gap-3 bg-card rounded-2xl border border-border p-3.5 shadow-warm hover:shadow-warm-md transition-all duration-150">
       <div
         className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
           index < 3 ? medalStyles[index] : "bg-secondary text-muted-foreground"
@@ -93,45 +69,27 @@ function SortableRow({ item, index }: { item: RankingItem; index: number }) {
 export default function RankingsPage() {
   const [items, setItems] = useState<RankingItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   const fetchRankings = useCallback(async () => {
     const res = await fetch("/api/rankings")
-    const data = await res.json()
+    const data: RankingItem[] = await res.json()
+    // Sort by the user's own review score, highest first
+    data.sort((a, b) => {
+      const scoreA = a.bathroom.reviews[0]?.overall ?? -1
+      const scoreB = b.bathroom.reviews[0]?.overall ?? -1
+      return scoreB - scoreA
+    })
     setItems(data)
     setLoading(false)
   }, [])
 
   useEffect(() => { fetchRankings() }, [fetchRankings])
 
-  async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-
-    const oldIdx = items.findIndex((i) => i.bathroomId === active.id)
-    const newIdx = items.findIndex((i) => i.bathroomId === over.id)
-    const reordered = arrayMove(items, oldIdx, newIdx)
-    setItems(reordered)
-
-    setSaving(true)
-    await fetch("/api/rankings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ order: reordered.map((i) => i.bathroomId) }),
-    })
-    setSaving(false)
-  }
-
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">My Rankings</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Drag to reorder your list</p>
-        </div>
-        {saving && <span className="text-xs text-muted-foreground animate-pulse">Saving…</span>}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">My Rankings</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Your reviewed bathrooms, ranked by score</p>
       </div>
 
       {loading ? (
@@ -150,15 +108,11 @@ export default function RankingsPage() {
           </Link>
         </div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={items.map((i) => i.bathroomId)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
-              {items.map((item, index) => (
-                <SortableRow key={item.bathroomId} item={item} index={index} />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        <div className="space-y-2">
+          {items.map((item, index) => (
+            <RankingRow key={item.bathroomId} item={item} index={index} />
+          ))}
+        </div>
       )}
     </div>
   )
