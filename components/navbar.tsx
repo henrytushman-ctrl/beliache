@@ -23,7 +23,7 @@ export function Navbar() {
           href="/discover"
           className="font-bold text-lg tracking-tight text-primary hover:opacity-80 transition-opacity flex items-center gap-1.5"
         >
-          <span className="text-xl">🚽</span>
+          <span className="text-xl" style={{ filter: "sepia(1) saturate(3) hue-rotate(-20deg) brightness(0.65)" }}>🚽</span>
           <span>BeliAche</span>
         </Link>
 
