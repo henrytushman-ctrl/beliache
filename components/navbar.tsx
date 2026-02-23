@@ -3,12 +3,13 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs"
-import { Search, Star, Plus } from "lucide-react"
+import { Search, Star, Plus, Shuffle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/discover", icon: Search, label: "Discover" },
   { href: "/rate", icon: Plus, label: "Rate" },
+  { href: "/compare", icon: Shuffle, label: "Compare" },
   { href: "/rankings", icon: Star, label: "Rankings" },
 ]
 

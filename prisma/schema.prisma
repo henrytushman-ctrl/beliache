@@ -21,6 +21,7 @@ model User {
   reviews       Review[]
   rankings      UserRanking[]
   bathrooms     Bathroom[]   @relation("AddedBy")
+  comparisons   Comparison[]
 
   sentRequests     Friendship[] @relation("Requester")
   receivedRequests Friendship[] @relation("Addressee")
@@ -76,9 +77,18 @@ model Bathroom {
   directionsSummary  String?
   createdAt          DateTime @default(now())
 
-  addedBy     User         @relation("AddedBy", fields: [addedById], references: [id])
-  reviews     Review[]
-  rankings    UserRanking[]
+  // Elo rating fields — start at 1200 (standard chess baseline)
+  eloRating   Float    @default(1200)
+  wins        Int      @default(0)
+  losses      Int      @default(0)
+  ties        Int      @default(0)
+  comparisons Int      @default(0)
+
+  addedBy      User         @relation("AddedBy", fields: [addedById], references: [id])
+  reviews      Review[]
+  rankings     UserRanking[]
+  comparisonsA Comparison[] @relation("ComparisonA")
+  comparisonsB Comparison[] @relation("ComparisonB")
 }
 
 model Review {
@@ -126,4 +136,21 @@ model Friendship {
   addressee   User     @relation("Addressee", fields: [addresseeId], references: [id], onDelete: Cascade)
 
   @@unique([requesterId, addresseeId])
+}
+
+model Comparison {
+  id          String   @id @default(cuid())
+  userId      String
+  bathroomAId String
+  bathroomBId String
+  // winnerId is null for a tie; otherwise equals bathroomAId or bathroomBId
+  winnerId    String?
+  createdAt   DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bathroomA Bathroom @relation("ComparisonA", fields: [bathroomAId], references: [id], onDelete: Cascade)
+  bathroomB Bathroom @relation("ComparisonB", fields: [bathroomBId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([bathroomAId, bathroomBId])
 }
