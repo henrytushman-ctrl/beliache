@@ -214,14 +214,14 @@ export default function ComparePage() {
     )
   }
 
-  // ── Not enough bathrooms ──
+  // ── No uncompared bathrooms ──
   if (noData) {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <div className="text-5xl mb-4">🚽</div>
-        <h2 className="text-xl font-bold mb-2">Not enough bathrooms yet</h2>
+        <h2 className="text-xl font-bold mb-2">Nothing to compare yet</h2>
         <p className="text-muted-foreground text-sm mb-6">
-          Add and review at least 2 bathrooms to start comparing.
+          Each bathroom is compared once when it&apos;s first added. Rate a new bathroom to trigger a comparison.
         </p>
         <Link
           href="/rate"

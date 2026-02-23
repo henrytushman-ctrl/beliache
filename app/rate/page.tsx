@@ -137,7 +137,9 @@ export default function RatePage() {
       }
 
       setStep("done")
-      setTimeout(() => router.push("/rankings"), 2000)
+      // New bathrooms go to compare for their one-time seeding comparison;
+      // re-reviews of existing bathrooms go straight to rankings.
+      setTimeout(() => router.push(isNew ? "/compare" : "/rankings"), 2000)
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Something went wrong. Please try again.")
     } finally {

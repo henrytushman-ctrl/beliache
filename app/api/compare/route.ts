@@ -54,9 +54,11 @@ export async function GET() {
   const user = await getOrCreateUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // Only compare bathrooms that have at least one review (so we have data to show)
+  // Only compare bathrooms that have never been compared yet (comparisons === 0)
+  // and have at least one review so we have data to show.
+  // Comparison is a one-time seeding event — once a bathroom has been compared it leaves the pool.
   const bathrooms = await prisma.bathroom.findMany({
-    where: { reviews: { some: {} } },
+    where: { reviews: { some: {} }, comparisons: 0 },
     include: {
       reviews: {
         select: { overall: true, cleanliness: true, smell: true, supplies: true, privacy: true },
@@ -68,38 +70,15 @@ export async function GET() {
     return NextResponse.json({ error: "not_enough_bathrooms" }, { status: 404 })
   }
 
-  // Pairs this user has seen in the last 14 days — skip them to keep it fresh
-  const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-  const recent = await prisma.comparison.findMany({
-    where: { userId: user.id, createdAt: { gte: cutoff } },
-    select: { bathroomAId: true, bathroomBId: true },
-  })
-  const recentSet = new Set(recent.map((c) => [c.bathroomAId, c.bathroomBId].sort().join("|")))
-
-  // Score every candidate pair — lower is better (more novel + more uncertain)
+  // Pick the pair with the closest review scores to make the first comparison meaningful
   let best: { a: (typeof bathrooms)[0]; b: (typeof bathrooms)[0]; score: number } | null = null
 
   for (let i = 0; i < bathrooms.length; i++) {
     for (let j = i + 1; j < bathrooms.length; j++) {
       const a = bathrooms[i]
       const b = bathrooms[j]
-      const key = [a.id, b.id].sort().join("|")
-      if (recentSet.has(key)) continue
-
       const score = pairScore(a.eloRating, b.eloRating, a.comparisons, b.comparisons)
       if (best === null || score < best.score) best = { a, b, score }
-    }
-  }
-
-  // Fallback: if every pair was seen recently, just return the closest-Elo pair
-  if (!best) {
-    for (let i = 0; i < bathrooms.length; i++) {
-      for (let j = i + 1; j < bathrooms.length; j++) {
-        const a = bathrooms[i]
-        const b = bathrooms[j]
-        const score = Math.abs(a.eloRating - b.eloRating)
-        if (best === null || score < best.score) best = { a, b, score }
-      }
     }
   }
 
