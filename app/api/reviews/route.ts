@@ -49,32 +49,36 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // Regenerate AI directions summary if directions provided
+  // Best-effort AI directions summary — never blocks the response
   if (directions?.trim()) {
-    const allDirections = await prisma.review.findMany({
-      where: { bathroomId, directions: { not: null } },
-      select: { directions: true },
-    })
-
-    const directionsList = allDirections
-      .map((r, i) => `${i + 1}. ${r.directions}`)
-      .join("\n")
-
-    const message = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 256,
-      messages: [{
-        role: "user",
-        content: `You are helping people find a bathroom. Below are ${allDirections.length} user-submitted directions to the same bathroom. Synthesize them into one clear, concise set of directions (2–4 sentences). Only include navigation info — no opinions or ratings.\n\nDirections submitted:\n${directionsList}`,
-      }],
-    })
-
-    const summary = message.content[0].type === "text" ? message.content[0].text : null
-    if (summary) {
-      await prisma.bathroom.update({
-        where: { id: bathroomId },
-        data: { directionsSummary: summary },
+    try {
+      const allDirections = await prisma.review.findMany({
+        where: { bathroomId, directions: { not: null } },
+        select: { directions: true },
       })
+
+      const directionsList = allDirections
+        .map((r, i) => `${i + 1}. ${r.directions}`)
+        .join("\n")
+
+      const message = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 256,
+        messages: [{
+          role: "user",
+          content: `You are helping people find a bathroom. Below are ${allDirections.length} user-submitted directions to the same bathroom. Synthesize them into one clear, concise set of directions (2–4 sentences). Only include navigation info — no opinions or ratings.\n\nDirections submitted:\n${directionsList}`,
+        }],
+      })
+
+      const summary = message.content[0].type === "text" ? message.content[0].text : null
+      if (summary) {
+        await prisma.bathroom.update({
+          where: { id: bathroomId },
+          data: { directionsSummary: summary },
+        })
+      }
+    } catch (e) {
+      console.error("AI directions summary failed:", e)
     }
   }
 

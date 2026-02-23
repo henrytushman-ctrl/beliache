@@ -110,27 +110,32 @@ export default function RatePage() {
 
   async function handleSubmit() {
     setSubmitting(true)
-    let bathroomId = selectedBathroom?.id
+    try {
+      let bathroomId = selectedBathroom?.id
 
-    if (isNew || !bathroomId) {
-      const res = await fetch("/api/bathrooms", {
+      if (isNew || !bathroomId) {
+        const res = await fetch("/api/bathrooms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newBathroom),
+        })
+        const data = await res.json()
+        bathroomId = data.id
+      }
+
+      await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newBathroom),
+        body: JSON.stringify({ bathroomId, ...ratings, overall: overallScore, notes, directions }),
       })
-      const data = await res.json()
-      bathroomId = data.id
+
+      setStep("done")
+      setTimeout(() => router.push("/rankings"), 2000)
+    } catch (e) {
+      console.error("Submit failed:", e)
+    } finally {
+      setSubmitting(false)
     }
-
-    await fetch("/api/reviews", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bathroomId, ...ratings, overall: overallScore, notes, directions }),
-    })
-
-    setStep("done")
-    setSubmitting(false)
-    setTimeout(() => router.push("/rankings"), 2000)
   }
 
   function RatingInput({ label, field }: { label: string; field: keyof typeof ratings }) {
