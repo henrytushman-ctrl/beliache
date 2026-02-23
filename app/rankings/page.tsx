@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
-import { Star } from "lucide-react"
+import { Star, Shuffle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
@@ -15,6 +15,11 @@ type RankingItem = {
     name: string
     address: string
     type: string
+    eloRating: number
+    wins: number
+    losses: number
+    ties: number
+    comparisons: number
     reviews: Array<{ overall: number; cleanliness: number; smell: number; supplies: number; privacy: number }>
   }
 }
@@ -25,8 +30,18 @@ const medalStyles = [
   "bg-orange-700 text-orange-100", // #3 bronze
 ]
 
+// Elo-adjusted composite score: review score ± up to 2 pts based on comparison record
+function compositeScore(reviewOverall: number, eloRating: number, comparisons: number): number {
+  if (comparisons === 0) return reviewOverall
+  const eloDelta = (eloRating - 1200) / 400  // roughly -1 to +1
+  return Math.max(1, Math.min(10, reviewOverall + eloDelta * 2))
+}
+
 function RankingRow({ item, index }: { item: RankingItem; index: number }) {
   const review = item.bathroom.reviews[0]
+  const composite = review
+    ? compositeScore(review.overall, item.bathroom.eloRating, item.bathroom.comparisons)
+    : null
 
   return (
     <div className="flex items-center gap-3 bg-card rounded-2xl border border-border p-3.5 shadow-warm hover:shadow-warm-md transition-all duration-150">
@@ -45,19 +60,25 @@ function RankingRow({ item, index }: { item: RankingItem; index: number }) {
         <p className="text-xs text-muted-foreground truncate mt-0.5">{item.bathroom.address}</p>
         {review && (
           <div className="flex gap-2 text-xs text-muted-foreground mt-1">
-            <span>🧹 {review.cleanliness}</span>
-            <span>🧴 {review.supplies}</span>
-            <span>🌸 {review.smell}</span>
-            <span>🔒 {review.privacy}</span>
+            <span>Clean {review.cleanliness}/5</span>
+            <span>Supplies {review.supplies}/5</span>
+            <span>Smell {review.smell}/5</span>
+            <span>Privacy {review.privacy}/5</span>
           </div>
+        )}
+        {item.bathroom.comparisons > 0 && (
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {item.bathroom.wins}W · {item.bathroom.losses}L
+            {item.bathroom.ties > 0 ? ` · ${item.bathroom.ties}T` : ""}
+          </p>
         )}
       </div>
 
       <div className="flex flex-col items-end gap-1.5 shrink-0">
-        {review && (
+        {composite !== null && (
           <div className="flex items-center gap-1">
             <Star className="h-3.5 w-3.5 text-primary fill-primary" />
-            <span className="text-sm font-bold text-primary">{review.overall}/10</span>
+            <span className="text-sm font-bold text-primary">{composite.toFixed(1)}/10</span>
           </div>
         )}
         <Badge variant="secondary" className="text-xs capitalize">{item.bathroom.type}</Badge>
@@ -73,10 +94,13 @@ export default function RankingsPage() {
   const fetchRankings = useCallback(async () => {
     const res = await fetch("/api/rankings")
     const data: RankingItem[] = await res.json()
-    // Sort by the user's own review score, highest first
     data.sort((a, b) => {
-      const scoreA = a.bathroom.reviews[0]?.overall ?? -1
-      const scoreB = b.bathroom.reviews[0]?.overall ?? -1
+      const scoreA = a.bathroom.reviews[0]
+        ? compositeScore(a.bathroom.reviews[0].overall, a.bathroom.eloRating, a.bathroom.comparisons)
+        : -1
+      const scoreB = b.bathroom.reviews[0]
+        ? compositeScore(b.bathroom.reviews[0].overall, b.bathroom.eloRating, b.bathroom.comparisons)
+        : -1
       return scoreB - scoreA
     })
     setItems(data)
@@ -89,7 +113,7 @@ export default function RankingsPage() {
     <div className="max-w-lg mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">My Rankings</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Your reviewed bathrooms, ranked by score</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Ranked by score · adjusted by comparisons</p>
       </div>
 
       {loading ? (
@@ -108,11 +132,27 @@ export default function RankingsPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-2">
-          {items.map((item, index) => (
-            <RankingRow key={item.bathroomId} item={item} index={index} />
-          ))}
-        </div>
+        <>
+          <div className="space-y-2">
+            {items.map((item, index) => (
+              <RankingRow key={item.bathroomId} item={item} index={index} />
+            ))}
+          </div>
+
+          {/* Comparison section */}
+          <div className="mt-8 pt-6 border-t border-border">
+            <h2 className="text-lg font-bold mb-1">Head-to-Head</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Compare bathrooms to sharpen the rankings. Winning comparisons boosts a score; losing lowers it.
+            </p>
+            <Link href="/compare">
+              <Button className="w-full flex items-center gap-2">
+                <Shuffle className="h-4 w-4" />
+                Compare Bathrooms
+              </Button>
+            </Link>
+          </div>
+        </>
       )}
     </div>
   )

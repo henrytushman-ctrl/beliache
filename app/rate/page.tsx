@@ -95,10 +95,18 @@ export default function RatePage() {
     }
   }
 
-  const [ratings, setRatings] = useState({ overall: 7, cleanliness: 3, supplies: 3, smell: 3, privacy: 3, cost: 0, crowded: 3 })
+  const [ratings, setRatings] = useState({ cleanliness: 3, supplies: 3, smell: 3, privacy: 3, cost: 0, crowded: 3 })
   const [notes, setNotes] = useState("")
   const [directions, setDirections] = useState("")
   const [submitting, setSubmitting] = useState(false)
+
+  function computeOverall(r: typeof ratings): number {
+    const quality = (r.cleanliness + r.supplies + r.smell + r.privacy) / 4
+    const crowdFactor = 1 - ((r.crowded - 1) / 4) * 0.4
+    return Math.max(1, Math.min(10, Math.round(quality * 2 * crowdFactor)))
+  }
+
+  const overallScore = computeOverall(ratings)
 
   async function handleSubmit() {
     setSubmitting(true)
@@ -117,7 +125,7 @@ export default function RatePage() {
     await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bathroomId, ...ratings, notes, directions }),
+      body: JSON.stringify({ bathroomId, ...ratings, overall: overallScore, notes, directions }),
     })
 
     setStep("done")
@@ -127,7 +135,7 @@ export default function RatePage() {
 
   function RatingInput({ label, field }: { label: string; field: keyof typeof ratings }) {
     const val = ratings[field]
-    const max = field === "overall" ? 10 : 5
+    const max = 5
 
     return (
       <div className="space-y-2">
@@ -313,7 +321,10 @@ export default function RatePage() {
 
           <Card>
             <CardContent className="pt-4 space-y-5">
-              <RatingInput label="Overall Score" field="overall" />
+              <div className="flex items-center justify-between pb-1">
+                <Label className="text-sm font-medium text-muted-foreground">Overall Score (auto)</Label>
+                <span className="text-2xl font-black text-primary">{overallScore}/10</span>
+              </div>
               <div className="border-t border-border pt-4 space-y-5">
                 <RatingInput label="Cleanliness" field="cleanliness" />
                 <RatingInput label="Supplies (TP, soap, towels)" field="supplies" />
@@ -369,7 +380,7 @@ export default function RatePage() {
           <div className="bg-card rounded-2xl border border-border p-4 space-y-2 shadow-warm">
             <div className="flex justify-between text-sm font-semibold">
               <span className="text-foreground truncate pr-2">{selectedBathroom?.name || newBathroom.name}</span>
-              <span className="text-primary shrink-0">{ratings.overall}/10</span>
+              <span className="text-primary shrink-0">{overallScore}/10</span>
             </div>
             <div className="flex gap-3 text-xs text-muted-foreground">
               <span>Clean {ratings.cleanliness}/5</span>
