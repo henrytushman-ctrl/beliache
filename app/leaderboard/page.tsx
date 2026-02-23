@@ -21,7 +21,7 @@ type LeaderboardEntry = {
   avgOverall: number | null
 }
 
-const TYPES = ["all", "public", "restaurant", "cafe", "hotel", "gym", "office", "other"]
+const TYPES = ["all", "cafe", "hotel", "gym", "office", "other"]
 
 const medalColors = [
   "bg-amber-400 text-amber-900",   // #1 gold
