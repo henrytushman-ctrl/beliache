@@ -54,10 +54,9 @@ export async function GET() {
   const user = await getOrCreateUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // Only compare bathrooms that have never been compared yet (comparisons === 0)
-  // and have at least one review so we have data to show.
-  // Comparison is a one-time seeding event — once a bathroom has been compared it leaves the pool.
-  const bathrooms = await prisma.bathroom.findMany({
+  // Comparisons are one-time seeding events.
+  // Pool: bathrooms that have never been compared (comparisons === 0) with at least one review.
+  const uncompared = await prisma.bathroom.findMany({
     where: { reviews: { some: {} }, comparisons: 0 },
     include: {
       reviews: {
@@ -66,19 +65,36 @@ export async function GET() {
     },
   })
 
-  if (bathrooms.length < 2) {
+  if (uncompared.length === 0) {
     return NextResponse.json({ error: "not_enough_bathrooms" }, { status: 404 })
   }
 
-  // Pick the pair with the closest review scores to make the first comparison meaningful
-  let best: { a: (typeof bathrooms)[0]; b: (typeof bathrooms)[0]; score: number } | null = null
+  // If 2+ uncompared bathrooms exist, pair them against each other.
+  // If only 1, pair it against any existing bathroom so it still gets seeded.
+  let best: { a: (typeof uncompared)[0]; b: (typeof uncompared)[0]; score: number } | null = null
 
-  for (let i = 0; i < bathrooms.length; i++) {
-    for (let j = i + 1; j < bathrooms.length; j++) {
-      const a = bathrooms[i]
-      const b = bathrooms[j]
-      const score = pairScore(a.eloRating, b.eloRating, a.comparisons, b.comparisons)
-      if (best === null || score < best.score) best = { a, b, score }
+  if (uncompared.length >= 2) {
+    for (let i = 0; i < uncompared.length; i++) {
+      for (let j = i + 1; j < uncompared.length; j++) {
+        const a = uncompared[i]
+        const b = uncompared[j]
+        const score = pairScore(a.eloRating, b.eloRating, a.comparisons, b.comparisons)
+        if (best === null || score < best.score) best = { a, b, score }
+      }
+    }
+  } else {
+    // Only 1 uncompared bathroom — pair it with any existing reviewed bathroom
+    const existing = await prisma.bathroom.findFirst({
+      where: { reviews: { some: {} }, comparisons: { gt: 0 } },
+      include: {
+        reviews: {
+          select: { overall: true, cleanliness: true, smell: true, supplies: true, privacy: true },
+        },
+      },
+      orderBy: { eloRating: "desc" },
+    })
+    if (existing) {
+      best = { a: uncompared[0], b: existing, score: 0 }
     }
   }
 

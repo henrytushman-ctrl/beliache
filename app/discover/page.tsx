@@ -21,6 +21,9 @@ type BathroomResult = {
   lng: number | null
   avgOverall: number | null
   avgCleanliness: number | null
+  avgSmell: number | null
+  avgSupplies: number | null
+  avgPrivacy: number | null
   avgCrowded: number | null
   modeCost: number | null
   reviewCount: number
@@ -175,12 +178,16 @@ function MapView({ results }: { results: BathroomResult[] }) {
   )
 }
 
-type SortOption = "score" | "cleanliness" | "price" | "reviews"
+type SortOption = "score" | "cleanliness" | "smell" | "supplies" | "privacy" | "price" | "crowd" | "reviews"
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "score",       label: "Best Score" },
-  { value: "cleanliness", label: "Cleanest" },
+  { value: "cleanliness", label: "Cleanliness" },
+  { value: "smell",       label: "Smell" },
+  { value: "supplies",    label: "Supplies" },
+  { value: "privacy",     label: "Privacy" },
   { value: "price",       label: "Cheapest" },
+  { value: "crowd",       label: "Least Busy" },
   { value: "reviews",     label: "Most Reviews" },
 ]
 
@@ -189,7 +196,11 @@ function sortResults(results: BathroomResult[], by: SortOption): BathroomResult[
     switch (by) {
       case "score":       return (b.avgOverall ?? -1) - (a.avgOverall ?? -1)
       case "cleanliness": return (b.avgCleanliness ?? -1) - (a.avgCleanliness ?? -1)
+      case "smell":       return (b.avgSmell ?? -1) - (a.avgSmell ?? -1)
+      case "supplies":    return (b.avgSupplies ?? -1) - (a.avgSupplies ?? -1)
+      case "privacy":     return (b.avgPrivacy ?? -1) - (a.avgPrivacy ?? -1)
       case "price":       return (a.modeCost ?? 999) - (b.modeCost ?? 999)
+      case "crowd":       return (a.avgCrowded ?? 999) - (b.avgCrowded ?? 999)
       case "reviews":     return b.reviewCount - a.reviewCount
     }
   })
