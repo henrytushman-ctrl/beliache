@@ -99,6 +99,7 @@ export default function RatePage() {
   const [notes, setNotes] = useState("")
   const [directions, setDirections] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   function computeOverall(r: typeof ratings): number {
     const quality = (r.cleanliness + r.supplies + r.smell + r.privacy) / 4
@@ -110,6 +111,7 @@ export default function RatePage() {
 
   async function handleSubmit() {
     setSubmitting(true)
+    setSubmitError(null)
     try {
       let bathroomId = selectedBathroom?.id
 
@@ -119,20 +121,25 @@ export default function RatePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(newBathroom),
         })
+        if (!res.ok) throw new Error(`Failed to add bathroom (${res.status})`)
         const data = await res.json()
         bathroomId = data.id
       }
 
-      await fetch("/api/reviews", {
+      const reviewRes = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bathroomId, ...ratings, overall: overallScore, notes, directions }),
       })
+      if (!reviewRes.ok) {
+        const body = await reviewRes.json().catch(() => ({}))
+        throw new Error(body.error || `Save failed (${reviewRes.status})`)
+      }
 
       setStep("done")
       setTimeout(() => router.push("/rankings"), 2000)
     } catch (e) {
-      console.error("Submit failed:", e)
+      setSubmitError(e instanceof Error ? e.message : "Something went wrong. Please try again.")
     } finally {
       setSubmitting(false)
     }
@@ -415,6 +422,9 @@ export default function RatePage() {
             />
           </div>
 
+          {submitError && (
+            <p className="text-sm text-red-500 text-center">{submitError}</p>
+          )}
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => setStep("attributes")} className="flex-1">
               <ChevronLeft className="h-4 w-4 mr-1" /> Back
