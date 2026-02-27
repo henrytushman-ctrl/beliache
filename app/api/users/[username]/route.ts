@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { computeBadges } from "@/lib/badges"
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ username: string }> }) {
   const { username } = await params
@@ -44,5 +45,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ use
     },
   })
 
-  return NextResponse.json({ ...user, avgScore, rankings })
+  const badges = await computeBadges(user.id)
+
+  return NextResponse.json({ ...user, avgScore, rankings, badges })
 }

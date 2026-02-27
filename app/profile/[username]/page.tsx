@@ -11,6 +11,13 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { MapPin, Star, UserPlus, UserCheck } from "lucide-react"
 
+type BadgeType = {
+  id: string
+  name: string
+  emoji: string
+  description: string
+}
+
 type UserProfile = {
   id: string
   name: string
@@ -18,6 +25,7 @@ type UserProfile = {
   image: string | null
   bio: string | null
   avgScore: number | null
+  badges: BadgeType[]
   _count: { reviews: number }
   rankings: Array<{
     id: string
@@ -171,6 +179,31 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Badges */}
+      {profile.badges.length > 0 && (
+        <div>
+          <h2 className="font-semibold text-lg mb-3">Badges</h2>
+          <div className="flex flex-wrap gap-2">
+            {profile.badges.map((b) => (
+              <div
+                key={b.id}
+                title={b.description}
+                className="group relative flex items-center gap-1.5 bg-secondary px-3 py-1.5 rounded-full text-sm font-medium cursor-default select-none hover:bg-accent transition-colors"
+              >
+                <span>{b.emoji}</span>
+                <span>{b.name}</span>
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-10">
+                  <div className="bg-foreground text-background text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                    {b.description}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Separator />
 

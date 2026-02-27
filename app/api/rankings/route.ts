@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
         include: {
           reviews: {
             where: { userId: targetId },
-            select: { overall: true, cleanliness: true, smell: true, supplies: true, privacy: true, notes: true, visitedAt: true },
+            select: { overall: true, cleanliness: true, smell: true, supplies: true, privacy: true, crowded: true, notes: true, visitedAt: true },
           },
         },
       },

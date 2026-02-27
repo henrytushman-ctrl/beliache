@@ -6,12 +6,20 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q") || ""
   const type = searchParams.get("type") || ""
+  const accessible    = searchParams.get("accessible") === "true"
+  const changingTable = searchParams.get("changingTable") === "true"
+  const genderNeutral = searchParams.get("genderNeutral") === "true"
+  const requiresKey   = searchParams.get("requiresKey") === "true"
 
   const bathrooms = await prisma.bathroom.findMany({
     where: {
       AND: [
         q ? { OR: [{ name: { contains: q } }, { address: { contains: q } }] } : {},
         type ? { type } : {},
+        accessible    ? { accessible: true }    : {},
+        changingTable ? { changingTable: true } : {},
+        genderNeutral ? { genderNeutral: true } : {},
+        requiresKey   ? { requiresKey: true }   : {},
       ],
     },
     include: {
@@ -40,6 +48,10 @@ export async function GET(req: NextRequest) {
     return {
       ...b,
       reviews: undefined,
+      accessible: b.accessible,
+      changingTable: b.changingTable,
+      genderNeutral: b.genderNeutral,
+      requiresKey: b.requiresKey,
       avgOverall: avg("overall"),
       avgCleanliness: avg("cleanliness"),
       avgSmell: avg("smell"),
@@ -54,11 +66,16 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(results)
 }
 
+function extractCity(address: string): string | null {
+  const parts = address.split(", ")
+  return parts.length >= 3 ? parts[1] : null
+}
+
 export async function POST(req: NextRequest) {
   const user = await getOrCreateUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { name, address, lat, lng, type } = await req.json()
+  const { name, address, lat, lng, type, accessible, changingTable, genderNeutral, requiresKey } = await req.json()
   if (!name || !address) {
     return NextResponse.json({ error: "Name and address required" }, { status: 400 })
   }
@@ -67,10 +84,15 @@ export async function POST(req: NextRequest) {
     data: {
       name,
       address,
+      city: extractCity(address),
       lat: lat ?? null,
       lng: lng ?? null,
       type: type ?? "public",
       addedById: user.id,
+      accessible:    accessible    ?? false,
+      changingTable: changingTable ?? false,
+      genderNeutral: genderNeutral ?? false,
+      requiresKey:   requiresKey   ?? false,
     },
   })
 

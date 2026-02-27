@@ -9,13 +9,15 @@ export async function POST(req: NextRequest) {
   const user = await getOrCreateUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { bathroomId, overall, cleanliness, supplies, smell, privacy, notes, directions, cost, crowded } = await req.json()
+  const { bathroomId, overall, cleanliness, supplies, smell, privacy, notes, directions, cost, crowded, photoUrls } = await req.json()
 
   if (!bathroomId || overall == null) {
     return NextResponse.json({ error: "bathroomId and overall required" }, { status: 400 })
   }
 
   const userId = user.id
+
+  const urls: string[] = Array.isArray(photoUrls) ? photoUrls.slice(0, 5) : []
 
   const review = await prisma.review.create({
     data: {
@@ -30,6 +32,9 @@ export async function POST(req: NextRequest) {
       directions: directions ?? null,
       cost: cost ?? 0,
       crowded: crowded ?? 3,
+      photos: urls.length > 0 ? {
+        create: urls.map((url) => ({ userId, bathroomId, url })),
+      } : undefined,
     },
   })
 

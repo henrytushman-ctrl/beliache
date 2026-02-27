@@ -10,6 +10,15 @@ const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "BeliAche — Bathroom Rankings",
   description: "Rate and rank public bathrooms with your friends",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "BeliAche",
+    statusBarStyle: "default",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

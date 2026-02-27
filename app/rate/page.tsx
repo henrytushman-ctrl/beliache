@@ -64,11 +64,11 @@ export default function RatePage() {
   const [results, setResults] = useState<Bathroom[]>([])
   const [selectedBathroom, setSelectedBathroom] = useState<Bathroom | null>(null)
   const [isNew, setIsNew] = useState(false)
-  const [newBathroom, setNewBathroom] = useState({ name: "", address: "", type: "public", lat: null as number | null, lng: null as number | null })
+  const [newBathroom, setNewBathroom] = useState({ name: "", address: "", type: "public", lat: null as number | null, lng: null as number | null, accessible: false, changingTable: false, genderNeutral: false, requiresKey: false })
   const [searching, setSearching] = useState(false)
 
   async function handlePlaceSelect(place: { name: string; address: string; lat: number | null; lng: number | null }) {
-    setNewBathroom({ name: place.name, address: place.address, type: "public", lat: place.lat, lng: place.lng })
+    setNewBathroom((prev) => ({ ...prev, name: place.name, address: place.address, type: "public", lat: place.lat, lng: place.lng }))
     setSearching(true)
     try {
       const res = await fetch(`/api/bathrooms?q=${encodeURIComponent(place.name)}`)
@@ -98,8 +98,25 @@ export default function RatePage() {
   const [ratings, setRatings] = useState({ cleanliness: 3, supplies: 3, smell: 3, privacy: 3, cost: 0, crowded: 3 })
   const [notes, setNotes] = useState("")
   const [directions, setDirections] = useState("")
+  const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || photoUrls.length >= 5) return
+    setUploadingPhoto(true)
+    const form = new FormData()
+    form.append("file", file)
+    const res = await fetch("/api/upload", { method: "POST", body: form })
+    if (res.ok) {
+      const { url } = await res.json()
+      setPhotoUrls((prev) => [...prev, url])
+    }
+    setUploadingPhoto(false)
+    e.target.value = ""
+  }
 
   function computeOverall(r: typeof ratings): number {
     const quality = (r.cleanliness + r.supplies + r.smell + r.privacy) / 4
@@ -129,7 +146,7 @@ export default function RatePage() {
       const reviewRes = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bathroomId, ...ratings, overall: overallScore, notes, directions }),
+        body: JSON.stringify({ bathroomId, ...ratings, overall: overallScore, notes, directions, photoUrls }),
       })
       if (!reviewRes.ok) {
         const body = await reviewRes.json().catch(() => ({}))
@@ -137,7 +154,7 @@ export default function RatePage() {
       }
 
       setStep("done")
-      setTimeout(() => router.push("/compare"), 2000)
+      setTimeout(() => router.push(`/compare?id=${bathroomId}`), 2000)
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Something went wrong. Please try again.")
     } finally {
@@ -181,7 +198,7 @@ export default function RatePage() {
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <CheckCircle className="h-16 w-16 text-primary mx-auto mb-4" />
         <h2 className="text-2xl font-bold mb-2">Review Saved!</h2>
-        <p className="text-muted-foreground">Redirecting to your rankings…</p>
+        <p className="text-muted-foreground">Redirecting to compare…</p>
       </div>
     )
   }
@@ -307,6 +324,29 @@ export default function RatePage() {
                     ))}
                   </div>
                 </div>
+                <div>
+                  <Label className="text-xs mb-2 block">Accessibility</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { key: "accessible",    emoji: "♿", label: "ADA Accessible" },
+                      { key: "changingTable", emoji: "👶", label: "Changing Table" },
+                      { key: "genderNeutral", emoji: "⚧",  label: "Gender Neutral" },
+                      { key: "requiresKey",   emoji: "🔑", label: "Requires Key" },
+                    ] as const).map(({ key, emoji, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => setNewBathroom((b) => ({ ...b, [key]: !b[key] }))}
+                        className={`px-3 py-1 rounded-full text-sm transition-all duration-150 ${
+                          newBathroom[key]
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-secondary text-muted-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {emoji} {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -420,6 +460,33 @@ export default function RatePage() {
               placeholder="The hand dryer was broken. The stall door didn't lock properly…"
               rows={3}
             />
+          </div>
+
+          {/* Photo upload */}
+          <div className="space-y-2">
+            <Label>Photos <span className="text-muted-foreground font-normal">(optional, up to 5)</span></Label>
+            <div className="flex gap-2 flex-wrap">
+              {photoUrls.map((url, i) => (
+                <div key={url} className="relative w-20 h-20 rounded-xl overflow-hidden border border-border">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setPhotoUrls((prev) => prev.filter((_, j) => j !== i))}
+                    className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs leading-none"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              {photoUrls.length < 5 && (
+                <label className={`w-20 h-20 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors ${uploadingPhoto ? "opacity-50 pointer-events-none" : ""}`}>
+                  <span className="text-2xl text-muted-foreground">{uploadingPhoto ? "…" : "+"}</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">Add photo</span>
+                  <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoSelect} disabled={uploadingPhoto} />
+                </label>
+              )}
+            </div>
           </div>
 
           {submitError && (

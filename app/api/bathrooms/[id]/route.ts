@@ -8,10 +8,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     where: { id },
     include: {
       reviews: {
-        include: { user: { select: { id: true, name: true, username: true, image: true } } },
+        include: {
+          user: { select: { id: true, name: true, username: true, image: true } },
+          photos: { select: { id: true, url: true }, orderBy: { createdAt: "asc" } },
+        },
         orderBy: { createdAt: "desc" },
       },
+      photos: { select: { id: true, url: true }, orderBy: { createdAt: "desc" }, take: 9 },
       addedBy: { select: { id: true, name: true, username: true } },
+      claimedBy: { select: { id: true, name: true, username: true } },
       _count: { select: { reviews: true } },
     },
   })

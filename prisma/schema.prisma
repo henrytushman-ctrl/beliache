@@ -21,6 +21,8 @@ model User {
   reviews       Review[]
   rankings      UserRanking[]
   bathrooms     Bathroom[]   @relation("AddedBy")
+  claimedBathrooms Bathroom[] @relation("ClaimedBy")
+  photos        Photo[]
   comparisons   Comparison[]
 
   sentRequests     Friendship[] @relation("Requester")
@@ -77,6 +79,19 @@ model Bathroom {
   directionsSummary  String?
   createdAt          DateTime @default(now())
 
+  // Accessibility flags
+  accessible    Boolean @default(false)   // ADA / wheelchair accessible
+  changingTable Boolean @default(false)
+  genderNeutral Boolean @default(false)
+  requiresKey   Boolean @default(false)
+
+  city        String?
+
+  // Business claim
+  claimedByUserId String?
+  claimedAt       DateTime?
+  verified        Boolean  @default(false)
+
   // Elo rating fields — start at 1200 (standard chess baseline)
   eloRating   Float    @default(1200)
   wins        Int      @default(0)
@@ -85,8 +100,10 @@ model Bathroom {
   comparisons Int      @default(0)
 
   addedBy      User         @relation("AddedBy", fields: [addedById], references: [id])
+  claimedBy    User?        @relation("ClaimedBy", fields: [claimedByUserId], references: [id])
   reviews      Review[]
   rankings     UserRanking[]
+  photos       Photo[]
   comparisonsA Comparison[] @relation("ComparisonA")
   comparisonsB Comparison[] @relation("ComparisonB")
 }
@@ -107,8 +124,12 @@ model Review {
   visitedAt   DateTime @default(now())
   createdAt   DateTime @default(now())
 
+  ownerResponse   String?
+  ownerResponseAt DateTime?
+
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bathroom    Bathroom @relation(fields: [bathroomId], references: [id], onDelete: Cascade)
+  photos      Photo[]
 }
 
 model UserRanking {
@@ -136,6 +157,21 @@ model Friendship {
   addressee   User     @relation("Addressee", fields: [addresseeId], references: [id], onDelete: Cascade)
 
   @@unique([requesterId, addresseeId])
+}
+
+model Photo {
+  id         String   @id @default(cuid())
+  reviewId   String
+  userId     String
+  bathroomId String
+  url        String
+  createdAt  DateTime @default(now())
+
+  review     Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bathroom   Bathroom @relation(fields: [bathroomId], references: [id], onDelete: Cascade)
+
+  @@index([bathroomId])
 }
 
 model Comparison {

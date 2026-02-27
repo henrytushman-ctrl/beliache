@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getOrCreateUser } from "@/lib/auth-user"
 
+const USER_SELECT = {
+  id: true,
+  name: true,
+  username: true,
+  image: true,
+  _count: { select: { reviews: true } },
+} as const
+
 export async function GET() {
   const user = await getOrCreateUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -12,9 +20,10 @@ export async function GET() {
       OR: [{ requesterId: userId }, { addresseeId: userId }],
     },
     include: {
-      requester: { select: { id: true, name: true, username: true, image: true } },
-      addressee: { select: { id: true, name: true, username: true, image: true } },
+      requester: { select: USER_SELECT },
+      addressee: { select: USER_SELECT },
     },
+    orderBy: { createdAt: "desc" },
   })
 
   return NextResponse.json(friendships)
@@ -69,4 +78,19 @@ export async function PATCH(req: NextRequest) {
   })
 
   return NextResponse.json(updated)
+}
+
+export async function DELETE(req: NextRequest) {
+  const user = await getOrCreateUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { friendshipId } = await req.json()
+
+  const friendship = await prisma.friendship.findUnique({ where: { id: friendshipId } })
+  if (!friendship || (friendship.requesterId !== user.id && friendship.addresseeId !== user.id)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  await prisma.friendship.delete({ where: { id: friendshipId } })
+  return NextResponse.json({ ok: true })
 }

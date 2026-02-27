@@ -20,8 +20,15 @@ type RankingItem = {
     losses: number
     ties: number
     comparisons: number
-    reviews: Array<{ overall: number; cleanliness: number; smell: number; supplies: number; privacy: number }>
+    reviews: Array<{ overall: number; cleanliness: number; smell: number; supplies: number; privacy: number; crowded: number }>
   }
+}
+
+// Compute a precise decimal overall score from sub-scores (mirrors rate page logic)
+function computeOverall(r: { cleanliness: number; supplies: number; smell: number; privacy: number; crowded: number }): number {
+  const quality = (r.cleanliness + r.supplies + r.smell + r.privacy) / 4
+  const crowdFactor = 1 - ((r.crowded - 1) / 4) * 0.4
+  return Math.max(1, Math.min(10, quality * 2 * crowdFactor))
 }
 
 const medalStyles = [
@@ -40,7 +47,7 @@ function compositeScore(reviewOverall: number, eloRating: number, comparisons: n
 function RankingRow({ item, index }: { item: RankingItem; index: number }) {
   const review = item.bathroom.reviews[0]
   const composite = review
-    ? compositeScore(review.overall, item.bathroom.eloRating, item.bathroom.comparisons)
+    ? compositeScore(computeOverall(review), item.bathroom.eloRating, item.bathroom.comparisons)
     : null
 
   return (
@@ -96,10 +103,10 @@ export default function RankingsPage() {
     const data: RankingItem[] = await res.json()
     data.sort((a, b) => {
       const scoreA = a.bathroom.reviews[0]
-        ? compositeScore(a.bathroom.reviews[0].overall, a.bathroom.eloRating, a.bathroom.comparisons)
+        ? compositeScore(computeOverall(a.bathroom.reviews[0]), a.bathroom.eloRating, a.bathroom.comparisons)
         : -1
       const scoreB = b.bathroom.reviews[0]
-        ? compositeScore(b.bathroom.reviews[0].overall, b.bathroom.eloRating, b.bathroom.comparisons)
+        ? compositeScore(computeOverall(b.bathroom.reviews[0]), b.bathroom.eloRating, b.bathroom.comparisons)
         : -1
       return scoreB - scoreA
     })

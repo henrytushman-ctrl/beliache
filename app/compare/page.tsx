@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Star, Trophy } from "lucide-react"
@@ -148,7 +149,11 @@ function ComparisonCard({
 
 // ─── Main compare page ───────────────────────────────────────────────────────
 
-export default function ComparePage() {
+function CompareContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const bathroomId = searchParams.get("id")
+
   const [pair, setPair] = useState<Pair | null>(null)
   const [loading, setLoading] = useState(true)
   const [noData, setNoData] = useState(false)
@@ -158,7 +163,8 @@ export default function ComparePage() {
   const fetchPair = useCallback(async () => {
     setLoading(true)
     setVoteState({ status: "idle" })
-    const res = await fetch("/api/compare")
+    const url = bathroomId ? `/api/compare?id=${bathroomId}` : "/api/compare"
+    const res = await fetch(url)
     if (!res.ok) {
       setNoData(true)
       setLoading(false)
@@ -171,6 +177,13 @@ export default function ComparePage() {
   }, [])
 
   useEffect(() => { fetchPair() }, [fetchPair])
+
+  // When a specific bathroom is settled, send the user to Discover to see it on the map
+  useEffect(() => {
+    if (!noData || !bathroomId) return
+    const t = setTimeout(() => router.push(`/discover?highlight=${bathroomId}`), 1500)
+    return () => clearTimeout(t)
+  }, [noData, bathroomId, router])
 
   async function vote(choice: "a" | "b" | "tie") {
     if (!pair || voteState.status !== "idle") return
@@ -216,12 +229,22 @@ export default function ComparePage() {
 
   // ── No uncompared bathrooms ──
   if (noData) {
+    // If we came from rating a specific bathroom, show a success flash before the redirect kicks in
+    if (bathroomId) {
+      return (
+        <div className="max-w-lg mx-auto px-4 py-16 text-center">
+          <div className="text-5xl mb-4">✅</div>
+          <h2 className="text-xl font-bold mb-2">Ranked!</h2>
+          <p className="text-muted-foreground text-sm">Taking you to Discover to see where it landed…</p>
+        </div>
+      )
+    }
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <div className="text-5xl mb-4">🚽</div>
-        <h2 className="text-xl font-bold mb-2">Nothing to compare yet</h2>
+        <h2 className="text-xl font-bold mb-2">All caught up!</h2>
         <p className="text-muted-foreground text-sm mb-6">
-          Each bathroom is compared once when it&apos;s first added. Rate a new bathroom to trigger a comparison.
+          Every bathroom you&apos;ve rated has been ranked against the others. Rate a new one to compare it.
         </p>
         <Link
           href="/rate"
@@ -241,7 +264,10 @@ export default function ComparePage() {
     <div className="max-w-2xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-2xl font-bold">Which do you prefer?</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Where does it rank?</h1>
+          <p className="text-xs font-medium text-primary mt-0.5">Ranking: {pair.a.name}</p>
+        </div>
         <Link
           href="/leaderboard"
           className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
@@ -251,7 +277,7 @@ export default function ComparePage() {
         </Link>
       </div>
       <p className="text-sm text-muted-foreground mb-6">
-        Tap a bathroom to vote · {sessionCount > 0 && `${sessionCount} vote${sessionCount !== 1 ? "s" : ""} this session`}
+        Tap whichever bathroom you prefer · up to 4 comparisons per bathroom
       </p>
 
       {/* Cards */}
@@ -302,11 +328,28 @@ export default function ComparePage() {
       </div>
 
       {/* Progress nudge */}
-      {sessionCount >= 5 && sessionCount % 5 === 0 && voteState.status === "idle" && (
+      {sessionCount > 0 && voteState.status === "idle" && (
         <p className="text-center text-xs text-muted-foreground mt-6">
-          🎯 {sessionCount} votes in — rankings are getting sharper!
+          {sessionCount} of up to 4 comparisons done
         </p>
       )}
     </div>
+  )
+}
+
+export default function ComparePage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="h-7 bg-secondary rounded-xl animate-pulse w-56 mb-1" />
+        <div className="h-4 bg-secondary rounded animate-pulse w-40 mb-8" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-64 bg-secondary rounded-2xl animate-pulse" />
+          <div className="h-64 bg-secondary rounded-2xl animate-pulse" />
+        </div>
+      </div>
+    }>
+      <CompareContent />
+    </Suspense>
   )
 }
