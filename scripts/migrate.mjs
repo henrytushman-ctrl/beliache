@@ -52,10 +52,17 @@ for (const name of folders) {
 
   const sql = readFileSync(sqlPath, "utf8");
 
-  // Split into individual statements.
-  // Filter comment lines and PRAGMA lines (PRAGMA defer_foreign_keys is a
-  // no-op in Turso's remote protocol; PRAGMA foreign_keys is session-only).
-  const stmts = sql
+  // Make DDL idempotent so re-runs on a partially-migrated DB don't fail.
+  // The production DB may already have some tables/columns from before this
+  // script existed, so "already exists" is expected and safe to skip.
+  const idempotentSql = sql
+    .replace(/CREATE TABLE "([^"]+)"/g, 'CREATE TABLE IF NOT EXISTS "$1"')
+    .replace(/CREATE UNIQUE INDEX "([^"]+)"/g, 'CREATE UNIQUE INDEX IF NOT EXISTS "$1"')
+    .replace(/CREATE INDEX "([^"]+)"/g, 'CREATE INDEX IF NOT EXISTS "$1"')
+    .replace(/DROP TABLE "([^"]+)"/g, 'DROP TABLE IF EXISTS "$1"');
+
+  // Parse into individual statements, skipping comment and PRAGMA lines.
+  const stmts = idempotentSql
     .split(";")
     .map((block) =>
       block
@@ -67,19 +74,37 @@ for (const name of folders) {
         .join("\n")
         .trim()
     )
-    .filter((s) => s.length > 0)
-    .map((s) => ({ sql: s }));
+    .filter((s) => s.length > 0);
 
   console.log(`  → applying ${name} (${stmts.length} statements)...`);
 
+  let skipped = 0;
   try {
-    await client.batch(stmts, "write");
+    for (const stmt of stmts) {
+      try {
+        await client.execute(stmt);
+      } catch (err) {
+        const msg = err.message ?? "";
+        // "already exists" = table/index/column was created by a prior run — safe to skip
+        // "duplicate column" = ADD COLUMN on a column that already exists — safe to skip
+        if (
+          msg.includes("already exists") ||
+          msg.includes("duplicate column") ||
+          msg.includes("SQLITE_ERROR: duplicate column")
+        ) {
+          skipped++;
+        } else {
+          throw err;
+        }
+      }
+    }
+
     await client.execute({
-      sql: `INSERT INTO "_migrations" (name) VALUES (?)`,
+      sql: `INSERT OR IGNORE INTO "_migrations" (name) VALUES (?)`,
       args: [name],
     });
     newCount++;
-    console.log(`    ✓ done`);
+    console.log(`    ✓ done${skipped ? ` (${skipped} already-existed, skipped)` : ""}`);
   } catch (err) {
     console.error(`    ✗ FAILED: ${err.message}`);
     process.exit(1);
